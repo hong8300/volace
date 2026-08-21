@@ -1,0 +1,18 @@
+*.iml
+.gradle/
+/local.properties
+.idea/
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+/app/build
+keystore.properties
+*.jks
+*.keystore
+
+# 実機デバッグ時のスクリーンショット(ホーム画面や通知が写り込むため公開しない)
+screenshot_*.png
+*.apk
