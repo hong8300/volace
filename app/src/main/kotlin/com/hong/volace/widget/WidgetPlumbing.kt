@@ -54,17 +54,22 @@ object WidgetRefresher {
         val placed = WidgetStyle.entries
             .map { style -> style to manager.getAppWidgetIds(ComponentName(app, style.provider)) }
             .filter { (_, ids) -> ids.isNotEmpty() }
-        if (placed.isNotEmpty()) {
-            val state = WidgetState.load(app)
-            placed.forEach { (style, ids) ->
-                val views = WidgetRenderer.build(app, style, state)
-                ids.forEach { id -> manager.updateAppWidget(id, views) }
+        try {
+            if (placed.isNotEmpty()) {
+                val state = WidgetState.load(app)
+                placed.forEach { (style, ids) ->
+                    val views = WidgetRenderer.build(app, style, state)
+                    ids.forEach { id -> manager.updateAppWidget(id, views) }
+                }
             }
+            // Every profile change comes through here; the shortcuts only update when they differ.
+            ProfileShortcuts.sync(app)
+        } finally {
+            // Last, so a volume change that lands while we were drawing still triggers another
+            // pass; and in finally, so one failed redraw does not end the watch for good (the job
+            // fires once and nothing else would re-arm it until the next tap).
+            VolumeWatchJob.sync(app, armed = placed.isNotEmpty())
         }
-        // Every profile change comes through here; the shortcuts only update when they differ.
-        ProfileShortcuts.sync(app)
-        // Last, so a volume change that lands while we were drawing still triggers another pass.
-        VolumeWatchJob.sync(app, armed = placed.isNotEmpty())
     }
 
     /** Fire-and-forget entry point for the in-app UI. */
