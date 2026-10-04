@@ -40,6 +40,8 @@ class VolumeApplier(context: Context) {
 
     fun currentVolume(stream: VolumeStream): Int = audioManager.getStreamVolume(stream.streamType)
 
+    private val ranges by lazy { ranges() }
+
     fun snapshot(): DeviceVolumes = DeviceVolumes(
         ringerMode = audioManager.ringerMode,
         levels = VolumeStream.entries.associateWith { currentVolume(it) },
@@ -50,17 +52,18 @@ class VolumeApplier(context: Context) {
      * are skipped, otherwise a freshly applied profile would immediately look changed:
      * - SYSTEM is aliased to RING (see [apply]), so it always reports the ringer's level.
      * - In vibrate/silent, RING and NOTIFICATION are muted and report 0.
-     * Expected values are clamped to the stream's range (call and alarm cannot go below 1).
+     * Expected values are what [apply] actually writes: moved into the device's range
+     * ([StreamRanges]; call and alarm cannot go below 1, an audible ringer not below 1).
      */
     fun matches(profile: Profile, device: DeviceVolumes): Boolean {
-        if (device.ringerMode != profile.ringerMode) return false
-        val ringerMuted = profile.ringerMode != AudioManager.RINGER_MODE_NORMAL
+        val expected = ranges.normalize(profile)
+        if (device.ringerMode != expected.ringerMode) return false
+        val ringerMuted = expected.ringerMode != AudioManager.RINGER_MODE_NORMAL
         return VolumeStream.entries.all { stream ->
             when {
                 stream == VolumeStream.SYSTEM -> true
                 ringerMuted && stream in RINGER_STREAMS -> true
-                else -> device.levelOf(stream) ==
-                    stream.valueOf(profile).coerceIn(minVolume(stream), maxVolume(stream))
+                else -> device.levelOf(stream) == stream.valueOf(expected)
             }
         }
     }
@@ -70,8 +73,11 @@ class VolumeApplier(context: Context) {
      * changing the ringer mode throws, which used to be swallowed: the volumes were half written
      * and the profile was still recorded as applied. Now nothing is touched in that case.
      */
-    fun apply(profile: Profile): ApplyResult {
+    fun apply(stored: Profile): ApplyResult {
         if (!notificationManager.isNotificationPolicyAccessGranted) return ApplyResult.NeedsAccess
+        // Profiles saved before ranges were enforced (or copied from another phone) may hold
+        // levels this device cannot take; write what it can.
+        val profile = ranges.normalize(stored)
 
         val failed = mutableListOf<String>()
         fun attempt(what: String, block: () -> Unit) {

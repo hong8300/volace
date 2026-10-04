@@ -76,6 +76,7 @@ import com.hong.volace.audio.VolumeApplier
 import com.hong.volace.audio.VolumeStream
 import com.hong.volace.audio.copyWith
 import com.hong.volace.audio.message
+import com.hong.volace.audio.ranges
 import com.hong.volace.audio.valueOf
 import com.hong.volace.data.Profile
 import com.hong.volace.data.ProfileDao
@@ -84,6 +85,7 @@ import com.hong.volace.data.ProfilePalette
 import com.hong.volace.data.edits
 import com.hong.volace.data.icon
 import com.hong.volace.widget.WidgetRefresher
+import kotlin.math.roundToInt
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
@@ -109,6 +111,8 @@ fun ProfileEditScreen(
 
     // Back (gesture, key or the arrow) returns to the list. Without this the system back
     // finished the activity, closing the app and silently dropping the edits.
+    val ranges = remember { volumeApplier.ranges() }
+
     fun leave() {
         if (profile != original) showDiscardConfirm = true else onDone(null)
     }
@@ -127,7 +131,7 @@ fun ProfileEditScreen(
             Profile(
                 name = "新しいプロファイル",
                 orderIndex = index,
-                ringerMode = AudioManager.RINGER_MODE_NORMAL,
+                ringerMode = volumeApplier.snapshot().ringerMode,
                 ringVolume = volumeApplier.currentVolume(VolumeStream.RINGER),
                 notificationVolume = volumeApplier.currentVolume(VolumeStream.NOTIFICATION),
                 mediaVolume = volumeApplier.currentVolume(VolumeStream.MEDIA),
@@ -138,8 +142,11 @@ fun ProfileEditScreen(
                 iconKey = ProfileIcon.DEFAULT.key,
             )
         }
-        original = loaded
-        profile = loaded
+        // Normalised before it becomes the baseline, so a stored 0 that the device cannot take
+        // does not show as an unsaved change.
+        val normalized = ranges.normalize(loaded)
+        original = normalized
+        profile = normalized
     }
 
     val current = profile
@@ -362,21 +369,21 @@ fun ProfileEditScreen(
                     selected = current.ringerMode == AudioManager.RINGER_MODE_NORMAL,
                     accent = accent,
                     modifier = Modifier.weight(1f),
-                ) { profile = current.copy(ringerMode = AudioManager.RINGER_MODE_NORMAL) }
+                ) { profile = ranges.normalize(current.copy(ringerMode = AudioManager.RINGER_MODE_NORMAL)) }
                 RingerModeButton(
                     icon = Icons.Filled.Vibration,
                     label = "バイブ",
                     selected = current.ringerMode == AudioManager.RINGER_MODE_VIBRATE,
                     accent = accent,
                     modifier = Modifier.weight(1f),
-                ) { profile = current.copy(ringerMode = AudioManager.RINGER_MODE_VIBRATE) }
+                ) { profile = ranges.normalize(current.copy(ringerMode = AudioManager.RINGER_MODE_VIBRATE)) }
                 RingerModeButton(
                     icon = Icons.Filled.VolumeOff,
                     label = "サイレント",
                     selected = current.ringerMode == AudioManager.RINGER_MODE_SILENT,
                     accent = accent,
                     modifier = Modifier.weight(1f),
-                ) { profile = current.copy(ringerMode = AudioManager.RINGER_MODE_SILENT) }
+                ) { profile = ranges.normalize(current.copy(ringerMode = AudioManager.RINGER_MODE_SILENT)) }
             }
             if (current.ringerMode == AudioManager.RINGER_MODE_SILENT) {
                 Text(
@@ -392,17 +399,20 @@ fun ProfileEditScreen(
             SectionTitle("音量")
             FilledTonalButton(
                 onClick = {
-                    var next: Profile = current
+                    // The ringer mode too: taking the volumes alone while the phone was on vibrate
+                    // gave a "着信音あり" profile with a ringer of 0.
+                    val device = volumeApplier.snapshot()
+                    var next: Profile = current.copy(ringerMode = device.ringerMode)
                     VolumeStream.entries.forEach { stream ->
-                        next = stream.copyWith(next, volumeApplier.currentVolume(stream))
+                        next = stream.copyWith(next, device.levelOf(stream))
                     }
-                    profile = next
+                    profile = ranges.normalize(next)
                 },
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Icon(Icons.Filled.Download, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(8.dp))
-                Text("現在の端末の音量を取り込む")
+                Text("現在の着信モードと音量を取り込む")
             }
             Spacer(Modifier.height(4.dp))
 
@@ -410,7 +420,8 @@ fun ProfileEditScreen(
                 StreamSliderRow(
                     stream = stream,
                     value = stream.valueOf(current),
-                    max = volumeApplier.maxVolume(stream),
+                    range = ranges.of(stream, current.ringerMode),
+                    max = ranges.max(stream),
                     accent = accent,
                     onValueChange = { newValue -> profile = stream.copyWith(current, newValue) },
                 )
@@ -444,6 +455,8 @@ private fun SectionTitle(text: String) {
 private fun StreamSliderRow(
     stream: VolumeStream,
     value: Int,
+    /** What can be chosen; may start above 0 (call, alarm, an audible ringer). */
+    range: IntRange,
     max: Int,
     accent: Color,
     onValueChange: (Int) -> Unit,
@@ -476,14 +489,16 @@ private fun StreamSliderRow(
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(
-                    onClick = { onValueChange((value - 1).coerceAtLeast(0)) },
+                    onClick = { onValueChange((value - 1).coerceAtLeast(range.first)) },
+                    enabled = value > range.first,
                     modifier = Modifier.size(36.dp),
                 ) { Icon(Icons.Filled.Remove, contentDescription = "下げる", modifier = Modifier.size(18.dp)) }
                 Slider(
                     value = value.toFloat(),
-                    onValueChange = { onValueChange(it.toInt()) },
-                    valueRange = 0f..max.toFloat(),
-                    steps = (max - 1).coerceAtLeast(0),
+                    // Rounded: the snapped float can land a hair under the step (2.9999998).
+                    onValueChange = { onValueChange(it.roundToInt()) },
+                    valueRange = range.first.toFloat()..range.last.toFloat(),
+                    steps = (range.last - range.first - 1).coerceAtLeast(0),
                     // Tick marks are noise at 25 steps; the numeric badge above is the precise read-out.
                     colors = SliderDefaults.colors(
                         thumbColor = accent,
@@ -494,7 +509,8 @@ private fun StreamSliderRow(
                     modifier = Modifier.weight(1f).padding(horizontal = 4.dp),
                 )
                 IconButton(
-                    onClick = { onValueChange((value + 1).coerceAtMost(max)) },
+                    onClick = { onValueChange((value + 1).coerceAtMost(range.last)) },
+                    enabled = value < range.last,
                     modifier = Modifier.size(36.dp),
                 ) { Icon(Icons.Filled.Add, contentDescription = "上げる", modifier = Modifier.size(18.dp)) }
             }
