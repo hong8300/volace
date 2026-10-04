@@ -30,3 +30,26 @@ class StreamRanges(private val byStream: Map<VolumeStream, IntRange>) {
 
 fun VolumeApplier.ranges(): StreamRanges =
     StreamRanges(VolumeStream.entries.associateWith { minVolume(it)..maxVolume(it) })
+
+/**
+ * Whether the device still sits where [profile] left it ([VolumeApplier.matches]; pure, for tests).
+ * Streams Android rewrites on its own are skipped, otherwise a freshly applied profile would
+ * immediately look changed:
+ * - SYSTEM is aliased to RING (see [VolumeApplier.apply]), so it always reports the ringer's level.
+ * - In vibrate/silent, RING and NOTIFICATION are muted and report 0.
+ * - Streams the profile leaves alone ("変更しない") match whatever the device has.
+ * Expected values are what apply actually writes: moved into the device's range.
+ */
+internal fun profileMatches(profile: Profile, device: DeviceVolumes, ranges: StreamRanges): Boolean {
+    val expected = ranges.normalize(profile)
+    if (device.ringerMode != expected.ringerMode) return false
+    val ringerMuted = expected.ringerMode != AudioManager.RINGER_MODE_NORMAL
+    return VolumeStream.entries.all { stream ->
+        when {
+            stream.isKeptBy(expected) -> true
+            stream == VolumeStream.SYSTEM -> true
+            ringerMuted && (stream == VolumeStream.RINGER || stream == VolumeStream.NOTIFICATION) -> true
+            else -> device.levelOf(stream) == stream.valueOf(expected)
+        }
+    }
+}
