@@ -1,6 +1,5 @@
 package com.hong.volace.tile
 
-import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -85,10 +84,7 @@ class ProfilePickerActivity : ComponentActivity() {
     }
 
     private fun openApp() {
-        startActivity(
-            Intent(this, MainActivity::class.java)
-                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
-        )
+        startActivity(MainActivity.launcherIntent(this))
         finish()
     }
 }

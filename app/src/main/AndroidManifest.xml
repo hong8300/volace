@@ -12,9 +12,12 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Volace">
 
+        <!-- singleTask: however it is opened (launcher, widget, tile), the one existing instance
+             comes back with its state, e.g. a half-done edit, instead of a fresh copy on top. -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:launchMode="singleTask"
             android:theme="@style/Theme.Volace">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

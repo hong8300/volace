@@ -2,6 +2,7 @@ package com.hong.volace
 
 import android.app.NotificationManager
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -9,7 +10,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.Saver
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.lifecycleScope
@@ -28,6 +30,23 @@ sealed interface Screen {
     data object ProfileList : Screen
     data class ProfileEdit(val profileId: Long?) : Screen
 }
+
+/** Keeps the open screen across rotation and process death. Ids are never negative. */
+private val ScreenSaver = Saver<Screen, Long>(
+    save = { screen ->
+        when (screen) {
+            Screen.ProfileList -> -1L
+            is Screen.ProfileEdit -> screen.profileId ?: -2L
+        }
+    },
+    restore = { saved ->
+        when (saved) {
+            -1L -> Screen.ProfileList
+            -2L -> Screen.ProfileEdit(null)
+            else -> Screen.ProfileEdit(saved)
+        }
+    },
+)
 
 class MainActivity : ComponentActivity() {
     private val dndGrantedState = mutableStateOf(false)
@@ -53,8 +72,10 @@ class MainActivity : ComponentActivity() {
             VolaceTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     val dndGranted by dndGrantedState
-                    var screen by remember { mutableStateOf<Screen>(Screen.ProfileList) }
-                    var message by remember { mutableStateOf<String?>(null) }
+                    var screen by rememberSaveable(stateSaver = ScreenSaver) {
+                        mutableStateOf<Screen>(Screen.ProfileList)
+                    }
+                    var message by rememberSaveable { mutableStateOf<String?>(null) }
 
                     if (!dndGranted) {
                         OnboardingScreen()
@@ -95,9 +116,20 @@ class MainActivity : ComponentActivity() {
         WidgetRefresher.request(this)
     }
 
-    private companion object {
-        const val PREFS = "volace"
-        const val KEY_SEEDED = "defaults_seeded"
+    companion object {
+        private const val PREFS = "volace"
+        private const val KEY_SEEDED = "defaults_seeded"
+
+        /**
+         * What the launcher sends: brings the existing task back as it was (e.g. a half-done
+         * edit) or starts fresh on the list. Clearing to the list instead (CLEAR_TOP) silently
+         * dropped an unsaved edit whenever the app was reopened from a widget.
+         */
+        fun launcherIntent(context: Context): Intent =
+            Intent(Intent.ACTION_MAIN)
+                .addCategory(Intent.CATEGORY_LAUNCHER)
+                .setClass(context, MainActivity::class.java)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED)
     }
 
     private fun checkDndAccess(): Boolean {
