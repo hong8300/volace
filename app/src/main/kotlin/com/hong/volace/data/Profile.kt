@@ -25,6 +25,13 @@ data class Profile(
      * stored levels are kept so unticking brings them back.
      */
     val keepMask: Int = 0,
+    /**
+     * The device's default sounds this profile sets (SoundKind): null leaves it as it is
+     * ("変更しない"), "" is "なし", otherwise a sound's URI. Device-specific: not in backups.
+     */
+    val ringtoneUri: String? = null,
+    val notificationSoundUri: String? = null,
+    val alarmSoundUri: String? = null,
 )
 
 /**
@@ -46,6 +53,9 @@ data class ProfileEdits(
     val colorArgb: Int,
     val iconKey: String,
     val keepMask: Int,
+    val ringtoneUri: String?,
+    val notificationSoundUri: String?,
+    val alarmSoundUri: String?,
 )
 
 fun Profile.edits() = ProfileEdits(
@@ -61,4 +71,7 @@ fun Profile.edits() = ProfileEdits(
     colorArgb = colorArgb,
     iconKey = iconKey,
     keepMask = keepMask,
+    ringtoneUri = ringtoneUri,
+    notificationSoundUri = notificationSoundUri,
+    alarmSoundUri = alarmSoundUri,
 )

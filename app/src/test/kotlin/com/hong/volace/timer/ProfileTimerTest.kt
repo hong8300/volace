@@ -2,6 +2,7 @@ package com.hong.volace.timer
 
 import android.media.AudioManager
 import com.hong.volace.audio.DeviceVolumes
+import com.hong.volace.audio.SoundKind
 import com.hong.volace.audio.VolumeStream
 import com.hong.volace.audio.isKeptBy
 import com.hong.volace.audio.valueOf
@@ -9,6 +10,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.json.JSONObject
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -42,6 +44,28 @@ class ProfileTimerTest {
         assertEquals(timer, ProfileTimer.fromJson(timer.toJson()))
         val toProfile = timer.copy(restoreId = 10, previousActiveId = null)
         assertEquals(toProfile, ProfileTimer.fromJson(toProfile.toJson()))
+    }
+
+    @Test
+    fun json_keepsTheSoundsFromBefore() {
+        val withSounds = timer.copy(
+            previousSounds = mapOf(SoundKind.RINGTONE to "content://media/internal/audio/media/42", SoundKind.ALARM to SoundKind.SILENT),
+        )
+        assertEquals(withSounds, ProfileTimer.fromJson(withSounds.toJson()))
+    }
+
+    @Test
+    fun json_savedBeforeSoundsExistedHasNone() {
+        val old = JSONObject(timer.toJson()).apply { remove("sounds") }.toString()
+        assertEquals(emptyMap<SoundKind, String>(), ProfileTimer.fromJson(old)?.previousSounds)
+    }
+
+    @Test
+    fun previousProfile_writesBackOnlyTheSoundsTheTimerChanged() {
+        val restore = timer.copy(previousSounds = mapOf(SoundKind.NOTIFICATION to "content://x/1")).previousProfile("前")
+        assertEquals("content://x/1", restore.notificationSoundUri)
+        assertNull(restore.ringtoneUri)
+        assertNull(restore.alarmSoundUri)
     }
 
     @Test

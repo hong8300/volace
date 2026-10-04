@@ -7,7 +7,7 @@ import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
-@Database(entities = [Profile::class, ScheduleRule::class, ScheduleSkip::class], version = 4, exportSchema = true)
+@Database(entities = [Profile::class, ScheduleRule::class, ScheduleSkip::class], version = 5, exportSchema = true)
 abstract class VolaceDatabase : RoomDatabase() {
     abstract fun profileDao(): ProfileDao
     abstract fun scheduleDao(): ScheduleDao
@@ -49,11 +49,20 @@ abstract class VolaceDatabase : RoomDatabase() {
             }
         }
 
+        /** v4 -> v5: per-profile default sounds; null leaves them alone, as before. */
+        internal val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE profiles ADD COLUMN ringtoneUri TEXT")
+                db.execSQL("ALTER TABLE profiles ADD COLUMN notificationSoundUri TEXT")
+                db.execSQL("ALTER TABLE profiles ADD COLUMN alarmSoundUri TEXT")
+            }
+        }
+
         /**
          * Every migration, oldest first. When bumping the version: add the migration here, commit
          * the new schema JSON under app/schemas, and add a case to MigrationTest.
          */
-        internal val MIGRATIONS = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+        internal val MIGRATIONS = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
 
         internal const val NAME = "volace.db"
 

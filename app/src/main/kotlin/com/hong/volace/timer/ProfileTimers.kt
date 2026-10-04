@@ -9,6 +9,9 @@ import android.util.Log
 import com.hong.volace.R
 import com.hong.volace.audio.ApplyResult
 import com.hong.volace.audio.ProfileSwitcher
+import com.hong.volace.audio.SoundKind
+import com.hong.volace.audio.Sounds
+import com.hong.volace.audio.valueOf
 import com.hong.volace.audio.VolumeApplier
 import com.hong.volace.data.Profile
 import com.hong.volace.data.ProfileDao
@@ -49,6 +52,10 @@ object ProfileTimers {
             val running = TimerStore.load(app)
             val previous = running?.previous ?: applier.snapshot()
             val previousActiveId = if (running != null) running.previousActiveId else dao.getAllOnce().firstOrNull { it.isActive }?.id
+            // The sounds this profile changes, as they are before it (or before the first timer).
+            val previousSounds = running?.previousSounds.orEmpty() + SoundKind.entries
+                .filter { it.valueOf(target) != null && running?.previousSounds?.containsKey(it) != true }
+                .associateWith { Sounds.current(app, it) }
             val restoreTo = restoreId?.takeIf { it != target.id }?.let { dao.getById(it) }
             val result = applier.apply(target)
             if (result == ApplyResult.Applied) {
@@ -63,6 +70,7 @@ object ProfileTimers {
                         previousActiveId = previousActiveId,
                         profileName = target.name,
                         restoreName = restoreTo?.name ?: app.getString(R.string.timer_previous_state),
+                        previousSounds = previousSounds,
                     ),
                 )
                 TimerAlarm.schedule(app, endAt)
@@ -149,7 +157,7 @@ object ProfileTimers {
         val timer = TimerStore.load(app) ?: return null
         val applier = VolumeApplier(app)
         val profile: Profile? = timer.restoreId?.let { dao.getById(it) }
-        val target = profile ?: timer.previous.asProfile(app.getString(R.string.timer_previous_state))
+        val target = profile ?: timer.previousProfile(app.getString(R.string.timer_previous_state))
         val result = applier.apply(target)
         // Android 17 ignores a change it does not allow without saying so: read it back.
         val restored = result == ApplyResult.Applied && applier.matches(target, applier.snapshot())

@@ -304,4 +304,17 @@
     <string name="schedule_failed_access">Needs Do Not Disturb access. Tap to open the app</string>
     <string name="schedule_gone_title">Scheduled profile is missing</string>
     <string name="schedule_gone_text">The profile for %1$s was deleted. Tap to fix the schedule</string>
+    <!-- Sounds -->
+    <string name="section_sounds">Sounds</string>
+    <string name="sound_ringtone">Ringtone</string>
+    <string name="sound_notification">Notification sound</string>
+    <string name="sound_alarm">Alarm sound</string>
+    <string name="sound_keep">Don’t change</string>
+    <string name="sound_none">None</string>
+    <string name="sound_unknown">Sound not found</string>
+    <string name="sound_reset">Set %1$s back to “Don’t change”</string>
+    <string name="sound_note">Switches the phone’s default sounds. Sounds other apps set for themselves, and the sound of each alarm in a clock app, don’t change.</string>
+    <string name="sound_permission">Switching sounds needs the “Modify system settings” permission.</string>
+    <string name="sound_permission_button">Allow</string>
+    <string name="sound_failed_permission">sounds (needs “Modify system settings”)</string>
 </resources>

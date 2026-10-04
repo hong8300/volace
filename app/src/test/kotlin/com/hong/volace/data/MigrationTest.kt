@@ -104,6 +104,31 @@ class MigrationTest {
         }
     }
 
+    @Test
+    fun migrate4To5_keepsEveryProfileAndChangesNoSound() {
+        helper.createDatabase(DB, 4).use { db ->
+            db.execSQL(
+                "INSERT INTO profiles (id, name, orderIndex, ringerMode, ringVolume, " +
+                    "notificationVolume, mediaVolume, alarmVolume, voiceCallVolume, systemVolume, " +
+                    "isActive, colorArgb, iconKey, keepMask) VALUES (6, '職場', 2, 1, 0, 0, 3, 6, 11, 0, 0, 42, 'work', 0)",
+            )
+            db.execSQL("INSERT INTO schedule_rules (minuteOfDay, days, profileId, enabled) VALUES (540, 31, 6, 1)")
+        }
+
+        helper.runMigrationsAndValidate(DB, 5, true, *VolaceDatabase.MIGRATIONS).use { db ->
+            db.query("SELECT name, mediaVolume, ringtoneUri, notificationSoundUri, alarmSoundUri FROM profiles WHERE id = 6").use { c ->
+                assertTrue(c.moveToFirst())
+                assertEquals("職場", c.getString(0))
+                assertEquals(3, c.getInt(1))
+                assertTrue(c.isNull(2) && c.isNull(3) && c.isNull(4)) // "変更しない", as before
+            }
+            db.query("SELECT COUNT(*) FROM schedule_rules").use { c ->
+                assertTrue(c.moveToFirst())
+                assertEquals(1, c.getInt(0))
+            }
+        }
+    }
+
     /** What the app itself does on launch: every registered migration must get it to the latest. */
     @Test
     fun appBuilder_opensOldestSchemaWithoutLosingData() {
@@ -139,7 +164,7 @@ class MigrationTest {
                     "notificationVolume, mediaVolume, alarmVolume, voiceCallVolume, systemVolume, " +
                     "isActive, colorArgb, iconKey, keepMask) VALUES ('通常', 0, 2, 5, 5, 15, 6, 11, 5, 0, 0, 'bell', 0)",
             )
-            db.execSQL("PRAGMA user_version = 5") // as written by a future build
+            db.execSQL("PRAGMA user_version = 6") // as written by a future build
         }
 
         val db = VolaceDatabase.builder(context, DB).allowMainThreadQueries().build()

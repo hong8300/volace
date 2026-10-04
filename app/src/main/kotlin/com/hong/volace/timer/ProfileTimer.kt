@@ -5,6 +5,7 @@ import android.content.SharedPreferences
 import android.media.AudioManager
 import androidx.core.content.edit
 import com.hong.volace.audio.DeviceVolumes
+import com.hong.volace.audio.SoundKind
 import com.hong.volace.audio.VolumeStream
 import com.hong.volace.audio.copyWith
 import com.hong.volace.audio.keepIn
@@ -34,6 +35,8 @@ data class ProfileTimer(
     /** Names as they were at the start, for the notification (which cannot wait for the database). */
     val profileName: String,
     val restoreName: String,
+    /** The default sounds before the timer, for the kinds the timer's profile changes. */
+    val previousSounds: Map<SoundKind, String> = emptyMap(),
 ) {
     /**
      * The time is up. A timer still stored after that is one whose restore Android refused (e.g.
@@ -50,7 +53,12 @@ data class ProfileTimer(
         .put("restoreName", restoreName)
         .put("ringerMode", previous.ringerMode)
         .put("levels", JSONObject().apply { previous.levels.forEach { (stream, level) -> put(stream.key, level) } })
+        .put("sounds", JSONObject().apply { previousSounds.forEach { (kind, value) -> put(kind.key, value) } })
         .toString()
+
+    /** What "適用前の状態に戻す" writes: the volumes from before, and the sounds the timer changed. */
+    fun previousProfile(name: String): Profile =
+        previousSounds.entries.fold(previous.asProfile(name)) { profile, (kind, value) -> kind.copyWith(profile, value) }
 
     companion object {
         /** Null for anything unreadable: a broken record must not keep a timer alive. */
@@ -68,6 +76,10 @@ data class ProfileTimer(
                 previousActiveId = json.optLongOrNull("previousActiveId"),
                 profileName = json.optString("profileName"),
                 restoreName = json.optString("restoreName"),
+                // Absent in timers saved before sounds existed.
+                previousSounds = json.optJSONObject("sounds")?.let { sounds ->
+                    SoundKind.entries.filter { sounds.has(it.key) }.associateWith { sounds.getString(it.key) }
+                }.orEmpty(),
             )
         }.getOrNull()
 
