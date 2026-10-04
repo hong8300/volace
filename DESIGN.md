@@ -389,6 +389,38 @@ volace/
   外部からの音量変更の再現には `adb shell cmd audio set-volume <stream> <index>` /
   `cmd audio set-ringer-mode VIBRATE` を使う
 
+### 8.7 Android 17 のバックグラウンド音量制限(AudioHardening)の検証(2026-10-04, issue #7)
+
+Android 17 では、`setStreamVolume()` / `setRingerMode()` などを呼べるのは
+「表示中の Activity」か「`SHORT_SERVICE` 以外のフォアグラウンドサービス」からに限られ、
+targetSdk 37 ではさらにそのサービスに while-in-use(WIU)能力が要る。条件を満たさない呼び出しは**例外も出ずに無視される**。
+ただし「ウィジェット操作・通知のクリック」はユーザー操作として扱われる。
+https://developer.android.com/about/versions/17/changes/bg-audio
+
+この端末(Pixel 9a / Android 17)の既定は「記録のみ」に近い状態だったので、強制した状態で確かめた。
+
+```sh
+adb shell cmd audio set-hardening enable   # 強制(mHardeningOverride=2)
+adb shell cmd audio set-hardening throw    # 違反時に例外(=3)
+adb shell cmd audio clear-hardening        # 既定に戻す(=0)
+adb shell dumpsys audio | grep -E "mHardeningOverride|AudioHardening"
+```
+
+| 経路 | enable | throw |
+|---|---|---|
+| ウィジェットのセルをタップ(`BroadcastReceiver` + goAsync) | OK(全ストリーム・着信モードとも反映) | OK(例外なし) |
+| アプリの一覧をタップ(表示中の Activity) | OK | OK |
+
+- どちらの経路でも `dumpsys audio` の "Hardening enforcement" に Volace の記録は出なかった(違反扱いされていない)。
+  記録が出たのは adb の `cmd media_session volume`(`com.android.server.media`)だけ
+- **今のウィジェット・アプリ・(予定の)ショートカット/QS タイルからの手動適用は、強制後もそのまま動く**
+- **ユーザー操作を起点にしない自動適用**(時刻の `AlarmManager`、Bluetooth 接続のブロードキャスト、ジョブ)は
+  この制限に当たる見込み。実装する機能ごとに次のどれかで対応し、上の `set-hardening` で確かめること
+  - ユーザー操作の時点で FGS を張っておく(例: 時限適用の開始時)
+  - 予定時刻に通知を出し、タップで適用する(通知のクリックはユーザー操作扱い)
+  - targetSdk を 36 にとどめる(WIU 要件が無くなり「`SHORT_SERVICE` 以外の FGS」だけで足りる。サイドロードなので可能)
+- QS タイルのクリックがユーザー操作扱いかは文書に無いので、タイルからは表示中の Activity を経由して適用する
+
 ### 未検証(今後)
 - Pixel 11 Pro でのプロファイル適用とウィジェット配置(端末ロックのため未実施。
   Android バージョン・音声設定とも 9 Pro XL と同一なので差異が出る要素はない)
