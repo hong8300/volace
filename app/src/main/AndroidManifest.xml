@@ -4,9 +4,9 @@
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
     <uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY" />
 
-    <!-- Timed profiles (DESIGN.md 5.14): a foreground service from start to end, so the volume
-         may be changed back from the background on Android 17; an exact alarm for the end;
-         the notification showing it; picking it up again after a reboot. -->
+    <!-- Timed profiles and the schedule (DESIGN.md 5.14, 5.15): Android 17 only lets an app change
+         volumes from the background while a foreground service runs (8.7), which an exact alarm
+         may start; the notifications showing them; picking them up again after a reboot. -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
@@ -78,7 +78,7 @@
             android:foregroundServiceType="specialUse">
             <property
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
-                android:value="Restores the user's volume settings at the time they chose. Android 17 only lets a foreground service started while the app was visible change volumes from the background." />
+                android:value="Shows the timed volume profile the user started and switches back at the time they chose. Android 17 only lets an app change volumes from the background while a foreground service runs." />
         </service>
 
         <receiver
@@ -96,6 +96,41 @@
 
         <activity
             android:name=".timer.TimerActionActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:taskAffinity=""
+            android:theme="@style/Theme.Volace.Picker" />
+
+        <!-- The schedule: the service that switches at a boundary (for a second), the alarm, picking
+             the alarm up again (reboot, update, clock or time-zone change), and "tap to switch"
+             from the notification when Android ignored the switch. -->
+        <service
+            android:name=".schedule.ScheduleService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Switches to the volume profile the user scheduled for this time. Android 17 only lets an app change volumes from the background while a foreground service runs." />
+        </service>
+
+        <receiver
+            android:name=".schedule.ScheduleReceiver"
+            android:exported="false" />
+
+        <receiver
+            android:name=".schedule.ScheduleBootReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+            </intent-filter>
+        </receiver>
+
+        <activity
+            android:name=".schedule.ScheduleActionActivity"
             android:exported="false"
             android:excludeFromRecents="true"
             android:noHistory="true"

@@ -87,6 +87,9 @@ import com.hong.volace.audio.ringerModeLabel
 import com.hong.volace.audio.valueOf
 import com.hong.volace.data.Profile
 import com.hong.volace.data.ProfileDao
+import com.hong.volace.data.ScheduleDao
+import com.hong.volace.schedule.Schedules
+import com.hong.volace.ui.schedule.ScheduleSummaryCard
 import com.hong.volace.data.icon
 import com.hong.volace.tile.ProfileTileService
 import com.hong.volace.ui.settings.SettingsDialog
@@ -111,6 +114,8 @@ fun ProfileListScreen(
     volumeApplier: VolumeApplier,
     onEditProfile: (Long) -> Unit,
     onAddProfile: () -> Unit,
+    scheduleDao: ScheduleDao,
+    onOpenSchedule: () -> Unit,
     /** Left by the edit screen ("保存しました" etc.); shown once, then [onMessageShown]. */
     message: String? = null,
     onMessageShown: () -> Unit = {},
@@ -146,6 +151,10 @@ fun ProfileListScreen(
             endAt = t.endAt,
         )
     }
+    val rules by remember(scheduleDao) { scheduleDao.observeRules() }.collectAsState(initial = emptyList())
+    val skips by remember(scheduleDao) { scheduleDao.observeSkips() }.collectAsState(initial = emptyList())
+    val scheduleStatus by remember(context) { Schedules.observeStatus(context) }.collectAsState(initial = null)
+
     // The profile whose "時間指定" dialog is open.
     var timedId by rememberSaveable { mutableStateOf<Long?>(null) }
     val startTimer = rememberTimerStarter { outcome, request ->
@@ -273,6 +282,9 @@ fun ProfileListScreen(
                         }
                     },
                 )
+            }
+            item(key = "schedule") {
+                ScheduleSummaryCard(rules, skips, profiles, scheduleStatus, onClick = onOpenSchedule)
             }
             item {
                 Text(

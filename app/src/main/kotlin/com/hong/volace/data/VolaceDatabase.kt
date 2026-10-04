@@ -7,9 +7,10 @@ import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
-@Database(entities = [Profile::class], version = 3, exportSchema = true)
+@Database(entities = [Profile::class, ScheduleRule::class, ScheduleSkip::class], version = 4, exportSchema = true)
 abstract class VolaceDatabase : RoomDatabase() {
     abstract fun profileDao(): ProfileDao
+    abstract fun scheduleDao(): ScheduleDao
 
     companion object {
         /** v1 -> v2: per-profile accent colour and icon. */
@@ -33,11 +34,26 @@ abstract class VolaceDatabase : RoomDatabase() {
             }
         }
 
+        /** v3 -> v4: the schedule (rules and days off). */
+        internal val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `schedule_rules` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "`minuteOfDay` INTEGER NOT NULL, `days` INTEGER NOT NULL, `profileId` INTEGER NOT NULL, " +
+                        "`enabled` INTEGER NOT NULL)",
+                )
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `schedule_skips` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "`fromDay` INTEGER NOT NULL, `toDay` INTEGER NOT NULL)",
+                )
+            }
+        }
+
         /**
          * Every migration, oldest first. When bumping the version: add the migration here, commit
          * the new schema JSON under app/schemas, and add a case to MigrationTest.
          */
-        internal val MIGRATIONS = arrayOf(MIGRATION_1_2, MIGRATION_2_3)
+        internal val MIGRATIONS = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
 
         internal const val NAME = "volace.db"
 

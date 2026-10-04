@@ -12,6 +12,7 @@ import com.hong.volace.audio.ProfileSwitcher
 import com.hong.volace.audio.VolumeApplier
 import com.hong.volace.data.Profile
 import com.hong.volace.data.ProfileDao
+import com.hong.volace.schedule.Schedules
 import kotlinx.coroutines.flow.Flow
 
 private const val TAG = "VolaceTimer"
@@ -20,11 +21,10 @@ private const val TAG = "VolaceTimer"
  * Timed profiles: apply one until a given time, then go back (DESIGN.md 5.14).
  *
  * Android 17 ignores volume changes from an app in the background unless it runs a foreground
- * service with "while-in-use" capability, which a service only gets when started while the app is
- * visible. So [start] is only called from a visible activity (the list, the picker), starts
- * [TimerService] there, and the service stays up until the end so the alarm-driven [expire] may
- * change the volume. When going back still fails (e.g. after a reboot the service could not get
- * that capability), the timer stays stored as due and a notification asks for a tap.
+ * service (DESIGN.md 8.7). [start] is called from a visible activity (the list, the picker) and
+ * starts [TimerService] there, which shows the timer until the end; the alarm at the end runs
+ * [expire] in that service too (starting it again if it is gone, e.g. after a reboot). When going
+ * back still fails, the timer stays stored as due and a notification asks for a tap.
  */
 object ProfileTimers {
 
@@ -68,6 +68,7 @@ object ProfileTimers {
                 TimerAlarm.schedule(app, endAt)
                 TimerNotifications.cancelDue(app)
                 TimerService.start(app)
+                Schedules.noteManualChoice(app, target.id)
             }
             ProfileSwitcher.Outcome(target, result)
         }
@@ -116,13 +117,23 @@ object ProfileTimers {
     suspend fun resume(context: Context) {
         val timer = current(context) ?: return
         if (timer.isDue(System.currentTimeMillis())) {
-            expire(context)
+            // Going back needs the service, which the alarm may start (a receiver may not change
+            // the volume on Android 17): an alarm due right away.
+            TimerAlarm.schedule(context, System.currentTimeMillis())
         } else {
             TimerAlarm.schedule(context, timer.endAt)
-            // No while-in-use capability from here, so the end may need a tap; the notification
-            // still shows what is running and offers "今すぐ戻す".
             TimerService.start(context)
         }
+    }
+
+    /**
+     * The schedule reached a boundary while the timer runs (DESIGN.md 5.15): the timer was chosen by
+     * hand, so it runs to its end, and then switches to [profile] instead of going back.
+     */
+    internal fun handOverLocked(context: Context, profile: Profile) {
+        val timer = TimerStore.load(context) ?: return
+        TimerStore.save(context, timer.copy(restoreId = profile.id, restoreName = profile.name))
+        TimerService.refresh(context)
     }
 
     /** Forgets the timer and keeps the volumes as they are (a profile was chosen by hand). */
