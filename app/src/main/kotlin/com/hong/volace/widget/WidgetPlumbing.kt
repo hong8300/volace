@@ -41,14 +41,19 @@ object WidgetRefresher {
 
     suspend fun refreshAll(context: Context) {
         val app = context.applicationContext
-        val profiles = VolaceDatabase.get(app).profileDao().getAllOnce()
         val manager = AppWidgetManager.getInstance(app)
-        WidgetStyle.entries.forEach { style ->
-            val ids = manager.getAppWidgetIds(ComponentName(app, style.provider))
-            if (ids.isEmpty()) return@forEach
-            val views = WidgetRenderer.build(app, style, profiles)
-            ids.forEach { id -> manager.updateAppWidget(id, views) }
+        val placed = WidgetStyle.entries
+            .map { style -> style to manager.getAppWidgetIds(ComponentName(app, style.provider)) }
+            .filter { (_, ids) -> ids.isNotEmpty() }
+        if (placed.isNotEmpty()) {
+            val state = WidgetState.load(app)
+            placed.forEach { (style, ids) ->
+                val views = WidgetRenderer.build(app, style, state)
+                ids.forEach { id -> manager.updateAppWidget(id, views) }
+            }
         }
+        // Last, so a volume change that lands while we were drawing still triggers another pass.
+        VolumeWatchJob.sync(app, armed = placed.isNotEmpty())
     }
 
     /** Fire-and-forget entry point for the in-app UI. */
@@ -119,10 +124,19 @@ abstract class VolaceWidgetProvider : AppWidgetProvider() {
         val style = style
         val pending = goAsync()
         WidgetScope.run(pending) {
-            val profiles = VolaceDatabase.get(app).profileDao().getAllOnce()
-            val views = WidgetRenderer.build(app, style, profiles)
+            val views = WidgetRenderer.build(app, style, WidgetState.load(app))
             appWidgetIds.forEach { id -> appWidgetManager.updateAppWidget(id, views) }
+            // Also the path a widget takes after a reboot or an app update, when the
+            // (non-persistable) volume watch is gone.
+            VolumeWatchJob.sync(app, armed = true)
         }
+    }
+
+    override fun onDisabled(context: Context) {
+        // The last widget of this size is gone; stop watching the volume if no other size is left.
+        val app = context.applicationContext
+        val pending = goAsync()
+        WidgetScope.run(pending) { WidgetRefresher.refreshAll(app) }
     }
 
     override fun onAppWidgetOptionsChanged(

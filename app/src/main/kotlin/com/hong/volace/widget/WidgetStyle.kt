@@ -24,6 +24,35 @@ internal val CELLS: List<CellRefs> = listOf(
     CellRefs(R.id.cell_7, R.id.cell_7_bg, R.id.cell_7_ring, R.id.cell_7_icon, R.id.cell_7_name),
 )
 
+/** View ids of one stream's bar in the status panel. [value] only exists in the full panel. */
+internal data class StatRefs(
+    val label: Int,
+    val fill: Int,
+    val value: Int,
+)
+
+/** One entry per [com.hong.volace.audio.VolumeStream], in the same order. */
+internal val STATS: List<StatRefs> = listOf(
+    StatRefs(R.id.stat_0_label, R.id.stat_0_fill, R.id.stat_0_value),
+    StatRefs(R.id.stat_1_label, R.id.stat_1_fill, R.id.stat_1_value),
+    StatRefs(R.id.stat_2_label, R.id.stat_2_fill, R.id.stat_2_value),
+    StatRefs(R.id.stat_3_label, R.id.stat_3_fill, R.id.stat_3_value),
+    StatRefs(R.id.stat_4_label, R.id.stat_4_fill, R.id.stat_4_value),
+    StatRefs(R.id.stat_5_label, R.id.stat_5_fill, R.id.stat_5_value),
+)
+
+/** How a widget shows the device's current volumes (its tap target opens the app). */
+enum class StatusPanel {
+    /** No room: the one-cell widget. */
+    NONE,
+
+    /** A fifth tile of six tiny vertical bars labelled R N M A V S, like the in-app list. */
+    MINI,
+
+    /** A strip of labelled horizontal bars with values, like the edit screen. */
+    FULL,
+}
+
 /**
  * The widget variants offered in the launcher's picker. Each one is a separate
  * [AppWidgetProvider] so the user can place several different shapes side by side.
@@ -36,22 +65,23 @@ enum class WidgetStyle(
     val cycles: Boolean,
     /** Second row id, hidden when there is nothing to put in it. */
     val secondRow: Int?,
+    val status: StatusPanel,
     val title: String,
     val subtitle: String,
 ) {
     SINGLE(
         R.layout.widget_1x1, 1, Volace1x1Provider::class.java,
-        cycles = true, secondRow = null,
+        cycles = true, secondRow = null, status = StatusPanel.NONE,
         title = "1 × 1", subtitle = "タップするたびに次のプロファイルへ切り替え",
     ),
     ROW4(
         R.layout.widget_1x4, 4, Volace1x4Provider::class.java,
-        cycles = false, secondRow = null,
-        title = "4 × 1", subtitle = "先頭4件を横一列に表示",
+        cycles = false, secondRow = null, status = StatusPanel.MINI,
+        title = "4 × 1", subtitle = "先頭4件を横一列に表示 + 現在の音量",
     ),
     GRID8(
         R.layout.widget_2x4, 8, Volace2x4Provider::class.java,
-        cycles = false, secondRow = R.id.row_1,
-        title = "4 × 2", subtitle = "先頭8件を2段グリッドで表示",
+        cycles = false, secondRow = R.id.row_1, status = StatusPanel.FULL,
+        title = "4 × 2", subtitle = "現在の音量 + 先頭8件を2段グリッドで表示",
     ),
 }

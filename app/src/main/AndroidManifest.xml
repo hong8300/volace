@@ -27,6 +27,12 @@
             android:name=".widget.VolumeApplyReceiver"
             android:exported="false" />
 
+        <!-- Redraws the widgets when the volume is changed outside Volace (keys, system panel). -->
+        <service
+            android:name=".widget.VolumeWatchJob"
+            android:exported="false"
+            android:permission="android.permission.BIND_JOB_SERVICE" />
+
         <receiver
             android:name=".widget.Volace1x1Provider"
             android:exported="false"

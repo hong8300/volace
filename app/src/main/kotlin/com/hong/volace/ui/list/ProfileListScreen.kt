@@ -3,6 +3,7 @@ package com.hong.volace.ui.list
 import android.media.AudioManager
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -62,6 +63,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.hong.volace.audio.VolumeApplier
 import com.hong.volace.audio.VolumeStream
+import com.hong.volace.audio.ringerModeLabel
 import com.hong.volace.audio.valueOf
 import com.hong.volace.data.Profile
 import com.hong.volace.data.ProfileDao
@@ -87,6 +89,9 @@ fun ProfileListScreen(
     var reorderMode by remember { mutableStateOf(false) }
     var showWidgetPicker by remember { mutableStateOf(false) }
     val maxes = remember { VolumeStream.entries.associateWith { volumeApplier.maxVolume(it) } }
+    val device by rememberDeviceVolumes(volumeApplier)
+    val active = profiles.firstOrNull { it.isActive }
+    val drifted = active != null && !volumeApplier.matches(active, device)
 
     if (showWidgetPicker) {
         AddWidgetDialog(onDismiss = { showWidgetPicker = false })
@@ -130,6 +135,9 @@ fun ProfileListScreen(
             contentPadding = PaddingValues(start = 12.dp, end = 12.dp, top = 4.dp, bottom = 96.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
+            item(key = "current-volume") {
+                CurrentVolumeCard(device = device, maxes = maxes, active = active, drifted = drifted)
+            }
             item {
                 Text(
                     text = if (reorderMode) "↑↓ で並び順を変更（ウィジェットの表示順にもなります）"
@@ -142,6 +150,7 @@ fun ProfileListScreen(
             items(profiles, key = { it.id }) { profile ->
                 ProfileRow(
                     profile = profile,
+                    drifted = profile.isActive && drifted,
                     maxes = maxes,
                     reorderMode = reorderMode,
                     onApply = {
@@ -223,6 +232,8 @@ private fun AddWidgetDialog(onDismiss: () -> Unit) {
 @Composable
 private fun ProfileRow(
     profile: Profile,
+    /** Applied, but the device has been changed since (volume keys, another app...). */
+    drifted: Boolean,
     maxes: Map<VolumeStream, Int>,
     reorderMode: Boolean,
     onApply: () -> Unit,
@@ -230,12 +241,17 @@ private fun ProfileRow(
     onMove: (Int) -> Unit,
 ) {
     val accent = Color(profile.colorArgb)
-    val active = profile.isActive
+    // A drifted profile keeps only an outline, like its widget cell: tapping it re-applies.
+    val active = profile.isActive && !drifted
 
     Surface(
         shape = RoundedCornerShape(20.dp),
         color = if (active) accent.copy(alpha = 0.16f) else MaterialTheme.colorScheme.surfaceContainer,
-        border = if (active) BorderStroke(2.dp, accent) else null,
+        border = when {
+            active -> BorderStroke(2.dp, accent)
+            drifted -> BorderStroke(1.5.dp, accent.copy(alpha = 0.7f))
+            else -> null
+        },
         modifier = Modifier.fillMaxWidth(),
     ) {
         Row(
@@ -270,9 +286,9 @@ private fun ProfileRow(
                         fontWeight = FontWeight.SemiBold,
                         maxLines = 1,
                     )
-                    if (active) {
+                    if (profile.isActive) {
                         Spacer(Modifier.width(8.dp))
-                        ActivePill(accent)
+                        ActivePill(accent, drifted)
                     }
                 }
                 Spacer(Modifier.height(3.dp))
@@ -285,7 +301,7 @@ private fun ProfileRow(
                     )
                     Spacer(Modifier.width(4.dp))
                     Text(
-                        text = ringerLabel(profile.ringerMode),
+                        text = ringerModeLabel(profile.ringerMode),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -327,7 +343,20 @@ private fun ProfileRow(
 }
 
 @Composable
-private fun ActivePill(accent: Color) {
+private fun ActivePill(accent: Color, drifted: Boolean) {
+    if (drifted) {
+        Text(
+            "変更あり",
+            color = accent,
+            fontSize = 10.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier
+                .clip(RoundedCornerShape(50))
+                .border(1.dp, accent, RoundedCornerShape(50))
+                .padding(horizontal = 7.dp, vertical = 1.dp),
+        )
+        return
+    }
     Row(
         modifier = Modifier
             .clip(RoundedCornerShape(50))
@@ -390,14 +419,8 @@ private fun MiniVolumeBars(profile: Profile, maxes: Map<VolumeStream, Int>, acce
     }
 }
 
-private fun ringerIcon(mode: Int) = when (mode) {
+internal fun ringerIcon(mode: Int) = when (mode) {
     AudioManager.RINGER_MODE_SILENT -> Icons.Filled.VolumeOff
     AudioManager.RINGER_MODE_VIBRATE -> Icons.Filled.Vibration
     else -> Icons.Filled.VolumeUp
-}
-
-private fun ringerLabel(mode: Int) = when (mode) {
-    AudioManager.RINGER_MODE_SILENT -> "サイレント"
-    AudioManager.RINGER_MODE_VIBRATE -> "バイブ"
-    else -> "着信音あり"
 }

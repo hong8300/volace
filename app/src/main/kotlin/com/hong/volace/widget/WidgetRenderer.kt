@@ -4,20 +4,54 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
+import android.media.AudioManager
 import android.net.Uri
+import android.util.SizeF
 import android.view.View
 import android.widget.RemoteViews
 import com.hong.volace.MainActivity
+import com.hong.volace.R
+import com.hong.volace.audio.DeviceVolumes
+import com.hong.volace.audio.VolumeApplier
+import com.hong.volace.audio.VolumeStream
+import com.hong.volace.audio.ringerModeLabel
 import com.hong.volace.data.Profile
 import com.hong.volace.data.ProfileIcon
+import com.hong.volace.data.VolaceDatabase
 import com.hong.volace.data.icon
 
+/** Everything a widget shows. Read once per refresh and shared by every placed widget. */
+internal class WidgetState(
+    val profiles: List<Profile>,
+    val device: DeviceVolumes,
+    val maxes: Map<VolumeStream, Int>,
+    /** The active profile no longer matches the device: something else changed the volume. */
+    val drifted: Boolean,
+) {
+    val active: Profile? get() = profiles.firstOrNull { it.isActive }
+
+    companion object {
+        suspend fun load(context: Context): WidgetState {
+            val profiles = VolaceDatabase.get(context).profileDao().getAllOnce()
+            val applier = VolumeApplier(context)
+            val device = applier.snapshot()
+            val active = profiles.firstOrNull { it.isActive }
+            return WidgetState(
+                profiles = profiles,
+                device = device,
+                maxes = VolumeStream.entries.associateWith { applier.maxVolume(it) },
+                drifted = active != null && !applier.matches(active, device),
+            )
+        }
+    }
+}
+
 /**
- * Builds the [RemoteViews] for a widget from the current profile list.
+ * Builds the [RemoteViews] for a widget from the current profile list and device volumes.
  *
  * Everything a cell shows is driven by remotable setters only ([RemoteViews.setInt] onto
- * `setColorFilter` / `setImageAlpha`), so a single pair of shape drawables can be recoloured per
- * profile without needing one drawable per colour.
+ * `setColorFilter` / `setImageAlpha` / `setImageLevel`), so a single set of shape drawables can be
+ * recoloured per profile without needing one drawable per colour.
  */
 object WidgetRenderer {
 
@@ -29,32 +63,64 @@ object WidgetRenderer {
     private val IDLE_TEXT = 0xFFDCDCE6.toInt()
     private val EMPTY_TINT = 0xFF3B3B4A.toInt()
 
-    fun build(context: Context, style: WidgetStyle, profiles: List<Profile>): RemoteViews {
+    /** Bar colour while no profile has been applied yet (the app's own primary). */
+    private val NEUTRAL_BAR = 0xFF8FB8FF.toInt()
+
+    /** Below this height a 4×2 cannot fit the status strip above two rows of profiles. */
+    private const val FULL_STATUS_MIN_HEIGHT_DP = 180f
+
+    /** Applied, and the device still matches it; applied but changed since; not applied. */
+    private enum class CellLook { ACTIVE, DRIFTED, IDLE }
+
+    internal fun build(context: Context, style: WidgetStyle, state: WidgetState): RemoteViews {
+        if (style.status != StatusPanel.FULL) return buildOne(context, style, state, showStatus = true)
+        // Let the launcher pick per placed widget, so shrinking a 4×2 drops the strip rather than
+        // squashing the profile buttons.
+        return RemoteViews(
+            mapOf(
+                SizeF(110f, 110f) to buildOne(context, style, state, showStatus = false),
+                SizeF(110f, FULL_STATUS_MIN_HEIGHT_DP) to buildOne(context, style, state, showStatus = true),
+            ),
+        )
+    }
+
+    private fun buildOne(
+        context: Context,
+        style: WidgetStyle,
+        state: WidgetState,
+        showStatus: Boolean,
+    ): RemoteViews {
         val views = RemoteViews(context.packageName, style.layout)
-        if (profiles.isEmpty()) {
-            renderEmpty(context, views)
-            return views
+        if (style.status != StatusPanel.NONE) {
+            views.setViewVisibility(R.id.status_panel, if (showStatus) View.VISIBLE else View.GONE)
+            if (showStatus) renderStatus(context, views, style.status, state)
         }
-        if (style.cycles) renderCycle(context, views, profiles) else renderGrid(context, views, style, profiles)
+        when {
+            state.profiles.isEmpty() -> renderEmpty(context, views)
+            style.cycles -> renderCycle(context, views, state)
+            else -> renderGrid(context, views, style, state)
+        }
         return views
     }
 
     /** One-cell widget: shows the profile in effect, tapping steps to the next one. */
-    private fun renderCycle(context: Context, views: RemoteViews, profiles: List<Profile>) {
-        val current = profiles.firstOrNull { it.isActive } ?: profiles.first()
+    private fun renderCycle(context: Context, views: RemoteViews, state: WidgetState) {
+        val current = state.active ?: state.profiles.first()
         val cell = CELLS[0]
-        paintCell(views, cell, current, active = current.isActive)
+        val look = lookOf(current, state)
+        paintCell(views, cell, current, look)
         views.setOnClickPendingIntent(cell.root, cyclePendingIntent(context))
-        views.setContentDescription(cell.root, "現在: ${current.name}。タップで次のプロファイル")
+        val status = if (look == CellLook.DRIFTED) "（適用後に音量が変更されています）" else ""
+        views.setContentDescription(cell.root, "現在: ${current.name}$status。タップで次のプロファイル")
     }
 
     private fun renderGrid(
         context: Context,
         views: RemoteViews,
         style: WidgetStyle,
-        profiles: List<Profile>,
+        state: WidgetState,
     ) {
-        val shown = profiles.take(style.cellCount)
+        val shown = state.profiles.take(style.cellCount)
 
         // With a second row, keep empty cells INVISIBLE so buttons keep a sane size; on a single
         // row, GONE lets the remaining buttons grow and fill the bar.
@@ -76,12 +142,17 @@ object WidgetRenderer {
                 views.setViewVisibility(cell.root, if (collapse) View.GONE else blankMode)
                 continue
             }
+            val look = lookOf(profile, state)
             views.setViewVisibility(cell.root, View.VISIBLE)
-            paintCell(views, cell, profile, active = profile.isActive)
+            paintCell(views, cell, profile, look)
             views.setOnClickPendingIntent(cell.root, applyPendingIntent(context, profile.id))
             views.setContentDescription(
                 cell.root,
-                if (profile.isActive) "${profile.name}（適用中）" else "${profile.name} を適用",
+                when (look) {
+                    CellLook.ACTIVE -> "${profile.name}（適用中）"
+                    CellLook.DRIFTED -> "${profile.name}（適用後に音量が変更されています）。タップで再適用"
+                    CellLook.IDLE -> "${profile.name} を適用"
+                },
             )
         }
     }
@@ -103,12 +174,64 @@ object WidgetRenderer {
         }
     }
 
-    private fun paintCell(views: RemoteViews, cell: CellRefs, profile: Profile, active: Boolean) {
+    /**
+     * The device's actual volumes, whoever set them. Bars are scaled per stream, like the in-app
+     * list, and take the applied profile's colour so the strip reads as "this profile's state".
+     */
+    private fun renderStatus(
+        context: Context,
+        views: RemoteViews,
+        panel: StatusPanel,
+        state: WidgetState,
+    ) {
+        val active = state.active
+        val barColor = active?.let { lighten(it.colorArgb, 0.25f) } ?: NEUTRAL_BAR
+        val mode = state.device.ringerMode
+
+        views.setImageViewResource(R.id.status_mode_icon, ringerModeIcon(mode))
+        VolumeStream.entries.forEachIndexed { index, stream ->
+            val refs = STATS[index]
+            val max = (state.maxes[stream] ?: 1).coerceAtLeast(1)
+            val level = state.device.levelOf(stream).coerceIn(0, max)
+            views.setTextViewText(refs.label, if (panel == StatusPanel.FULL) stream.label else stream.shortLabel)
+            views.setInt(refs.fill, "setImageLevel", level * MAX_LEVEL / max)
+            views.setInt(refs.fill, "setColorFilter", barColor)
+            if (panel == StatusPanel.FULL) views.setTextViewText(refs.value, level.toString())
+        }
+
+        val drift = if (state.drifted && active != null) "「${active.name}」から変更あり" else null
+        if (panel == StatusPanel.FULL) {
+            views.setTextViewText(
+                R.id.status_mode_text,
+                listOfNotNull(ringerModeLabel(mode), drift).joinToString("・"),
+            )
+        }
+
+        views.setOnClickPendingIntent(R.id.status_panel, openAppPendingIntent(context))
+        val levels = VolumeStream.entries.joinToString("、") { stream ->
+            "${stream.label} ${state.device.levelOf(stream)}/${state.maxes[stream] ?: 0}"
+        }
+        views.setContentDescription(
+            R.id.status_panel,
+            "現在の音量: ${ringerModeLabel(mode)}、$levels${drift?.let { "、$it" } ?: ""}。タップで Volace を開く",
+        )
+    }
+
+    private fun lookOf(profile: Profile, state: WidgetState): CellLook = when {
+        !profile.isActive -> CellLook.IDLE
+        state.drifted -> CellLook.DRIFTED
+        else -> CellLook.ACTIVE
+    }
+
+    private fun paintCell(views: RemoteViews, cell: CellRefs, profile: Profile, look: CellLook) {
+        val active = look == CellLook.ACTIVE
         views.setInt(cell.bg, "setColorFilter", profile.colorArgb)
         views.setInt(cell.bg, "setImageAlpha", if (active) ACTIVE_ALPHA else IDLE_ALPHA)
 
-        views.setViewVisibility(cell.ring, if (active) View.VISIBLE else View.GONE)
-        views.setInt(cell.ring, "setColorFilter", Color.WHITE)
+        // A drifted profile keeps an outline in its own colour: "this was applied, but the volume
+        // has been changed since" — tapping it again re-applies.
+        views.setViewVisibility(cell.ring, if (look == CellLook.IDLE) View.GONE else View.VISIBLE)
+        views.setInt(cell.ring, "setColorFilter", if (active) Color.WHITE else lighten(profile.colorArgb, 0.45f))
         views.setInt(cell.ring, "setImageAlpha", RING_ALPHA)
 
         views.setImageViewResource(cell.icon, profile.icon.res)
@@ -118,6 +241,12 @@ object WidgetRenderer {
 
         views.setTextViewText(cell.name, profile.name)
         views.setTextColor(cell.name, if (active) ACTIVE_TEXT else IDLE_TEXT)
+    }
+
+    private fun ringerModeIcon(mode: Int): Int = when (mode) {
+        AudioManager.RINGER_MODE_SILENT -> R.drawable.ic_profile_volume_off
+        AudioManager.RINGER_MODE_VIBRATE -> R.drawable.ic_profile_vibration
+        else -> R.drawable.ic_profile_volume_up
     }
 
     private fun lighten(color: Int, amount: Float): Int = Color.rgb(
@@ -155,6 +284,7 @@ object WidgetRenderer {
         )
     }
 
+    /** Opens the app on its profile list, the same screen as the launcher icon. */
     private fun openAppPendingIntent(context: Context): PendingIntent {
         val intent = Intent(context, MainActivity::class.java)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
@@ -165,6 +295,9 @@ object WidgetRenderer {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
     }
+
+    /** Full scale of [android.graphics.drawable.ClipDrawable]'s level. */
+    private const val MAX_LEVEL = 10_000
 
     private const val REQUEST_CYCLE = 900_001
     private const val REQUEST_OPEN_APP = 900_002
