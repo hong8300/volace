@@ -24,7 +24,8 @@ import com.hong.volace.data.icon
  */
 object ProfileShortcuts {
 
-    private const val PREFS = "volace"
+    /** Device-local: excluded from backups, or a restored copy would skip publishing here. */
+    private const val PREFS = "volace_device"
     private const val KEY_SIGNATURE = "shortcuts_signature"
     private const val ID_PREFIX = "profile-"
 

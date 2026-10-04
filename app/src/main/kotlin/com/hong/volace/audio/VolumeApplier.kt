@@ -29,6 +29,7 @@ fun ApplyResult.message(profileName: String): String = when (this) {
 }
 
 class VolumeApplier(context: Context) {
+    val context: Context = context.applicationContext
     private val audioManager =
         context.applicationContext.getSystemService(Context.AUDIO_SERVICE) as AudioManager
     private val notificationManager =

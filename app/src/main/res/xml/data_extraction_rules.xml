@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  What Android's own backup (Google cloud backup, and phone-to-phone transfer) may copy.
+  The profiles (database) and "defaults already created" go along, so a new phone starts with
+  the same list. Device-local state does not: volace_device.xml remembers what this phone's
+  launcher shortcuts show, and a restored copy would make the new phone skip publishing them.
+  For moving profiles by hand there is the JSON backup in the app.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="sharedpref" path="volace_device.xml" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="sharedpref" path="volace_device.xml" />
+    </device-transfer>
+</data-extraction-rules>
