@@ -76,6 +76,7 @@ import com.hong.volace.audio.valueOf
 import com.hong.volace.data.Profile
 import com.hong.volace.data.ProfileDao
 import com.hong.volace.data.icon
+import com.hong.volace.tile.ProfileTileService
 import com.hong.volace.widget.WidgetRefresher
 import com.hong.volace.widget.WidgetStyle
 import com.hong.volace.widget.requestPinWidget
@@ -259,7 +260,7 @@ private fun AddWidgetDialog(onDismiss: () -> Unit) {
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("ウィジェットをホーム画面に追加") },
+        title = { Text("ホーム画面・クイック設定に追加") },
         text = {
             Column {
                 WidgetStyle.entries.forEach { style ->
@@ -281,6 +282,27 @@ private fun AddWidgetDialog(onDismiss: () -> Unit) {
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
+                    }
+                }
+                // Not a widget, but the same question ("where else can I switch from?").
+                Surface(
+                    shape = RoundedCornerShape(14.dp),
+                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp)
+                        .clickable {
+                            ProfileTileService.requestAdd(context)
+                            onDismiss()
+                        },
+                ) {
+                    Column(Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
+                        Text("クイック設定タイル", fontWeight = FontWeight.SemiBold)
+                        Text(
+                            "通知シェードを下ろして、どの画面からでも切り替え",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
                 }
                 if (failed) {

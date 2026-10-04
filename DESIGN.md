@@ -248,6 +248,19 @@ AudioService は音量を `Settings.System`(`volume_music_speaker` 等、出力�
   4×2 は「許可が必要です(タップして開く)」、4×1 は音量タイルに警告アイコン、1×1 は「許可が必要」と表示する。
   アプリで許可して戻ると(`onPause` の再描画で)通常表示に戻る
 
+### 5.9 クイック設定タイル(issue #11)
+
+通知シェードからどの画面でも切り替えられるよう、`TileService`(`ProfileTileService`)を追加した。
+
+- 表示: ラベルに適用中のプロファイル名、サブタイトルに「Volace」/「変更あり」/「許可が必要」/「タップして選ぶ」。
+  アイコンは適用中プロファイルのアイコン。適用中かつ一致していればオン、それ以外はオフ。
+  状態はパネルを開いたとき(`onStartListening`)に読み直す。Pixel の小さいタイルはアイコンだけなので、名前は大きいタイルで見える
+- タップ: 透明な `ProfilePickerActivity` を `startActivityAndCollapse` で開き、プロファイル名の一覧から選ぶ
+  (循環順を覚えなくてよい)。**適用はこの表示中の Activity から行う**: タイルのクリックが Android 17 の音量制限で
+  ユーザー操作扱いになるかは文書に無いため(8.7)。API 34 以降は `PendingIntent` 版を使う(`Intent` 版は例外になる)
+- 追加: アプリの「ウィジェット追加」ダイアログに「クイック設定タイル」を置き、`StatusBarManager.requestAddTileService()`
+  でシステムの確認ダイアログを出す。ロック中は `unlockAndRun` で解除してから開く
+
 ## 6. パーミッション
 
 ```xml

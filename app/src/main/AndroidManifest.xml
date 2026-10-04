@@ -27,6 +27,26 @@
             android:name=".widget.VolumeApplyReceiver"
             android:exported="false" />
 
+        <!-- Quick Settings tile; tapping it opens ProfilePickerActivity. -->
+        <service
+            android:name=".tile.ProfileTileService"
+            android:exported="true"
+            android:icon="@drawable/ic_profile_volume_up"
+            android:label="@string/app_name"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+
+        <!-- Opened by the tile over whatever is on screen: its own task, kept out of Recents. -->
+        <activity
+            android:name=".tile.ProfilePickerActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:taskAffinity=""
+            android:theme="@style/Theme.Volace.Picker" />
+
         <!-- Redraws the widgets when the volume is changed outside Volace (keys, system panel). -->
         <service
             android:name=".widget.VolumeWatchJob"
