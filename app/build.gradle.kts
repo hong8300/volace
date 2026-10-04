@@ -26,6 +26,18 @@ android {
     }
 
     signingConfigs {
+        // Debug builds share one key across dev machines so APKs from any of them install over
+        // each other. The key is git-ignored (kept on Google Drive); copy it to app/debug.keystore.
+        // Without it, the machine's own ~/.android/debug.keystore is used as usual.
+        val sharedDebugKey = file("debug.keystore")
+        if (sharedDebugKey.exists()) {
+            getByName("debug") {
+                storeFile = sharedDebugKey
+                storePassword = "android"
+                keyAlias = "androiddebugkey"
+                keyPassword = "android"
+            }
+        }
         if (keystoreProperties.isNotEmpty()) {
             create("release") {
                 storeFile = file(keystoreProperties.getProperty("storeFile"))

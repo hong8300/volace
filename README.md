@@ -47,6 +47,12 @@ targetSdk 要件に縛られないので、必要な機能だけを自分で作�
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```
 
+複数のPCで開発するときは、共通のデバッグ鍵を `app/debug.keystore` に置いてください
+（Google Drive の `Develop/volace/debug.keystore` に保管。`.gitignore` 済み）。
+置いてあればそれで署名されるので、どのPCでビルドしても実機のアプリに上書きインストールできます。
+無い場合は PC ごとの `~/.android/debug.keystore` で署名され、別のPCで入れたアプリには上書きできません
+（`INSTALL_FAILED_UPDATE_INCOMPATIBLE`）。
+
 リリースビルドには署名設定が必要です。`keystore.properties.sample` をコピーして
 自分のキーストア情報を書いてください（`keystore.properties` は `.gitignore` 済み）。
 
