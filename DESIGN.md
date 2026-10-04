@@ -383,7 +383,7 @@ AudioService は音量を `Settings.System`(`volume_music_speaker` 等、出力�
 - **記録**: タイマーは 1 つだけ。`volace_device.xml` の `timer` に JSON で保存(バックアップ対象外)。
   開始直前の着信モード・音量(`DeviceVolumes`)と、その時「適用中」だったプロファイルも持つ。
   タイマー中に別のタイマーを始めても、戻り先は最初のタイマーの前の状態のまま
-- **終了**: `AlarmManager.setExactAndAllowWhileIdle`(`USE_EXACT_ALARM`、インストール時に許可済み)で `TimerReceiver` を起こし、
+- **終了**: `AlarmManager.setExactAndAllowWhileIdle`(`SCHEDULE_EXACT_ALARM`、ユーザーが許可。許可が無いときは 5.19)で `TimerReceiver` を起こし、
   `TimerService` に終了を頼んで、**FGS の中で**戻す(サービスが止まっていれば、正確なアラームから開始し直す)
 - **Android 17 の制限への対応(8.7)**: バックグラウンドから音量を変えられるのは FGS が動いている間だけ(targetSdk 36 のため、
   「ユーザー操作から始めた FGS」でなくてよい)。開始時に表示中の画面(一覧・選択画面)から `TimerService`(FGS、`specialUse`)を開始し、
@@ -500,6 +500,30 @@ AudioService は音量を `Settings.System`(`volume_music_speaker` 等、出力�
   手動でプロファイルを選んだら、失敗の通知を消し、記録を「手動で切り替えた」/「手動の選択を優先した」にする(`BluetoothSwitch.noteManualChoice`)
 - **表示**: Bluetooth 画面の「前回」と、一覧のカード(ルールの要約、失敗なら赤字)
 
+### 5.19 「アラームとリマインダー」(`SCHEDULE_EXACT_ALARM`、issue #59)
+
+時間指定(5.14)・スケジュール(5.15)・Bluetooth 連動(5.18)は、**正確なアラーム**が `Service` の開始と時刻どおりの切り替えを担う(8.7)。
+`USE_EXACT_ALARM` は Google Play では時計・カレンダー系のアプリに限られ、音量プロファイルの審査で外される恐れがあるので、
+`SCHEDULE_EXACT_ALARM`(ユーザーが設定の「アラームとリマインダー」で許可)にした。Android 14 以降はインストール時に付かない。
+
+- **アラームの設定は 1 か所**: `ExactAlarms.set`(`alarm/ExactAlarms.kt`)。許可があれば `setExactAndAllowWhileIdle`、無ければ `setAndAllowWhileIdle`
+  (数十秒〜数分遅れうる。アラームそのものは必ず入れる)。許可が確認と設定の間に外れたときの `SecurityException` も非正確に落とす。
+  時間指定の終了(`TimerAlarm`)、スケジュールの境界(`ScheduleAlarm`)、Bluetooth のイベント(`BluetoothAlarm`)の 3 つがここを通る
+- **許可が無いとき何が起きるか**: アラームが遅れる。さらに、バックグラウンドから FGS を開始できる例外は**正確なアラーム**なので、
+  サービスが動いていなければ開始できず、受信側で直接切り替えようとしても Android 17 が無視する(8.7)。そのときは読み直しで失敗と分かり、
+  「タップすると切り替えます」の通知に落ちる。時間指定は終了までサービスが動いているので、遅れるだけで戻せることが多い(8.11)。
+  **「許可が無くても確実に動く」とは書かない**
+- **案内(`ui/alarm/ExactAlarmNotice.kt`)**: 許可が無く、それに頼る設定があるときだけ出す(スケジュール・Bluetooth はオンのルールがあるとき、
+  時間指定のダイアログは常に)。理由と「設定を開く」(`Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM`)。画面に戻るたびに読み直す。
+  一覧のスケジュール・Bluetooth のカードにも 1 行出す。「設定」ダイアログにも項目(許可済み / 未許可)を置き、いつでも開ける。
+  初回の案内画面(おやすみモードの許可)には含めない: 使わない人に 3 つ目の許可を求めない
+- **許可されたとき**: `ExactAlarmPermissionReceiver`(`ACTION_SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED`)が、非正確に入れていたタイマーとスケジュールのアラームを入れ直す
+  (`ProfileTimers.resume` / `Schedules.reschedule`。終了時刻を過ぎていたタイマーは今すぐ鳴らす)
+- **取り消されたとき**: Android がアプリを止め、アラームがすべて消える(通知なし)。次にアプリを開いたとき(`MainActivity.onCreate`)と再起動後に、
+  同じ入れ直しをする(強制停止のあとも同じ)。取り消したまま時間が過ぎたタイマーは、アプリを開いたときに今すぐ鳴らして戻す(戻せなければ一覧に「時間になりました」と出て、戻すボタンで戻せる)
+- **画面の文言**: スケジュールと Bluetooth の説明に「切り替えられなかったときは通知でお知らせします」を入れた。通知を拒否していると通知は出ないので、
+  結果は一覧のカードと各画面にも出す(失敗は赤字)
+
 ## 6. パーミッション
 
 ```xml
@@ -518,14 +542,14 @@ AudioService は音量を `Settings.System`(`volume_music_speaker` 等、出力�
 <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
 <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
 <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-<uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+<uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
 <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 ```
   - FGS は時間指定の間と、スケジュールの切り替えの 1 秒ほどだけ動く(常駐はしない)。種類は該当するものが無いので `specialUse`
   - Bluetooth 連動(5.18)のために `BLUETOOTH_CONNECT`(実行時。Bluetooth 画面で求める)
   - スケジュール(5.15)は追加の権限なし。時刻・タイムゾーンの変更(`TIME_SET` / `TIMEZONE_CHANGED`)はマニフェストで受け取れる例外
-  - `USE_EXACT_ALARM` は Google Play では時計・カレンダー系のアプリに限られる。Play で配布するなら
-    `SCHEDULE_EXACT_ALARM`(ユーザーが許可)に替える。許可が無ければ非正確なアラームになり、終了が数分遅れうる
+  - 正確なアラームは `SCHEDULE_EXACT_ALARM`(ユーザーが許可、5.19)。`USE_EXACT_ALARM` は Google Play では時計・カレンダー系のアプリに限られるので使わない。
+    許可が無ければ非正確なアラームになり、遅れうる
   - `POST_NOTIFICATIONS` は実行時に許可を求める(初回の時間指定・スケジュールのルールを初めて保存したとき)
 
 ## 7. プロジェクト構成
@@ -743,7 +767,7 @@ Android 17 のソース(`android17-release` の `services/core/java/com/android/
    `would be ignored` は記録だけで実際は変更されたことを表す
 
 つまり **`set-hardening enable` での確認は、targetSdk 36 や正確なアラームの例外を無視した、最も厳しい条件での確認**になる。
-実際の動きを確かめるには既定(`clear-hardening`)で試す。Volace は `USE_EXACT_ALARM` を持つ(#24 から)ので、既定でもすでに partial が効いている。
+実際の動きを確かめるには既定(`clear-hardening`)で試す。Volace は `USE_EXACT_ALARM`(#24 から。#59 で `SCHEDULE_EXACT_ALARM` に替えた。5.19)を持つので、許可されていれば既定でもすでに partial が効いている。
 
 試験(Pixel 9a、画面ロック中、正確なアラームから)で、メディアの音量を 8 → 7 に変えられるかを確かめた:
 
@@ -825,6 +849,27 @@ Android 17 の `ZenModeHelper.RingerModeDelegate.onSetRingerModeExternal` は、
 - 4×1 ウィジェットの配置(4×2 / 1×1 と同一コードパスのため優先度低)
 - プロファイルが5件以上のときの 4×2 の2段目表示
 - 長期運用での並べ替え・削除
+
+### 8.11 「アラームとリマインダー」の確認(Pixel 9a / Android 17、2026-10-05、issue #59)
+
+デバッグビルド(`SCHEDULE_EXACT_ALARM`、targetSdk 36)。許可の切り替えは `adb shell cmd appops set [--uid] com.hong.volace SCHEDULE_EXACT_ALARM allow|deny`
+(設定の画面で切り替えると **uid 側**が書かれ、パッケージ側の `deny` より優先される。取り消しの試験は `--uid` で行う)。
+
+| 手順 | 結果 |
+|---|---|
+| 許可なしで「マナー」を 1 分の時間指定、アラームを見る(`dumpsys alarm`) | 終了のアラームは `window=+44s`(非正確)、スケジュールの 22:00 は `window=+1h`。時間指定のダイアログに案内が出る |
+| 許可を付ける(`appops allow`) | `ExactAlarmPermissionReceiver` が呼ばれ(`VolaceAlarm: allowed=true`)、2 つとも `window=0 exactAllowReason=permission` に替わった |
+| 許可して 1 分の時間指定、ホーム画面の裏で待つ | 終了の 08:36:39.1 ちょうどに戻った(通知が消え、ウィジェットが更新された) |
+| 許可なしで 1 分の時間指定、ホーム画面の裏で待つ | 窓の終わり(+45 秒)の 08:41:03 に戻った。時間指定のサービスが終了まで動いていたので、直接の切り替えが効いた |
+| 許可なしで終了時刻を過ぎたタイマーがあるときに許可を付ける | 受信機が「今すぐ」のアラームを入れ、数秒で戻った |
+| 許可を取り消す(`--uid deny`) | アプリが止まり、アラームが全部消えた。アプリを開くと、スケジュールのアラームが非正確で入り直った |
+| 設定の「アラームとリマインダー」の画面でスイッチを入れて戻る | 受信機が呼ばれ、一覧のカードの警告が消えた |
+| 一覧・設定ダイアログ・時間指定ダイアログの表示 | 警告の行、設定の項目(未許可 / 許可済み)、案内と「設定を開く」が出た |
+
+- 単体テスト: `ExactAlarmsTest`(Robolectric の `ShadowAlarmManager`)で、許可あり=正確・なし=非正確で必ずアラームが入ること、設定画面が自アプリであること、
+  許可の変更後にタイマーのアラームが正確に入り直ること
+- **未確認**: 許可が無く、**サービスが動いていない**状態でのスケジュール・Bluetooth の切り替え(FGS を開始できず、通知のタップに落ちるはず)。
+  再起動後・画面ロック中の入れ直し。実機の Bluetooth 機器(車を含む)での接続・切断
 
 ## 9. ビルドとインストール
 

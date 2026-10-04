@@ -107,7 +107,7 @@ cp keystore.properties.sample keystore.properties
 ユーザーが設定画面から個別に許可する必要があります。初回起動時に案内画面が出ます。
 
 時間指定のために、フォアグラウンドサービス（`FOREGROUND_SERVICE` / `FOREGROUND_SERVICE_SPECIAL_USE`）、
-正確なアラーム（`USE_EXACT_ALARM`）、通知（`POST_NOTIFICATIONS`、初回の時間指定のときに確認）、
+正確なアラーム（`SCHEDULE_EXACT_ALARM`。設定の「アラームとリマインダー」で許可。許可が無いと切り替えが遅れたり、通知のタップが必要になります）、通知（`POST_NOTIFICATIONS`、初回の時間指定のときに確認）、
 再起動後の再開（`RECEIVE_BOOT_COMPLETED`）も使います。サービスは時間指定の間だけ動きます。
 
 インターネット権限は持っていません。

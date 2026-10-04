@@ -22,6 +22,7 @@ import com.hong.volace.audio.VolumeApplier
 import com.hong.volace.data.DefaultProfiles
 import com.hong.volace.data.VolaceDatabase
 import com.hong.volace.schedule.Schedules
+import com.hong.volace.timer.ProfileTimers
 import com.hong.volace.ui.edit.ProfileEditScreen
 import com.hong.volace.ui.list.ProfileListScreen
 import com.hong.volace.ui.onboarding.OnboardingScreen
@@ -77,7 +78,9 @@ class MainActivity : ComponentActivity() {
                 prefs.edit().putBoolean(KEY_SEEDED, true).apply()
                 WidgetRefresher.refreshAll(applicationContext)
             }
-            // The schedule's alarm is gone after a force stop, which no broadcast reports.
+            // The alarms are gone after a force stop, or after "アラームとリマインダー" was taken away
+            // (the app is stopped then); no broadcast reports either.
+            ProfileTimers.resume(applicationContext)
             Schedules.reschedule(applicationContext)
             removeUnusedDndModes()
         }

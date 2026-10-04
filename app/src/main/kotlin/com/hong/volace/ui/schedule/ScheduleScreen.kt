@@ -1,5 +1,7 @@
 package com.hong.volace.ui.schedule
 
+import com.hong.volace.ui.alarm.ExactAlarmNotice
+import com.hong.volace.ui.alarm.rememberExactAlarmAllowed
 import com.hong.volace.ui.theme.cardShape
 import com.hong.volace.ui.theme.ProfileIconView
 import android.Manifest
@@ -205,6 +207,7 @@ fun ScheduleScreen(profileDao: ProfileDao, scheduleDao: ScheduleDao, onBack: () 
                     modifier = Modifier.padding(horizontal = 6.dp),
                 )
             }
+            item(key = "exact-alarm") { ExactAlarmNotice(relevant = rules.orEmpty().any { it.enabled }) }
             item(key = "status") {
                 StatusCard(rules.orEmpty(), skips, profiles, status, now)
             }
@@ -263,6 +266,7 @@ fun ScheduleSummaryCard(
     val now = rememberMinuteClock()
     val next = ScheduleCalc.next(rules, skips, now)
     val failed = status?.outcome?.failed == true
+    val exactAlarmAllowed = rememberExactAlarmAllowed()
     Surface(
         onClick = onClick,
         shape = cardShape(),
@@ -301,6 +305,13 @@ fun ScheduleSummaryCard(
                 }
                 if (failed && status != null) {
                     Text(statusText(status, now), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+                }
+                if (rules.any { it.enabled } && !exactAlarmAllowed) {
+                    Text(
+                        stringResource(R.string.exact_alarm_list_missing),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
                 }
             }
             Icon(

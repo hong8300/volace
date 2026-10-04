@@ -1,7 +1,5 @@
 package com.hong.volace.bluetooth
 
-import android.annotation.SuppressLint
-import android.app.AlarmManager
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -16,6 +14,7 @@ import android.util.Log
 import androidx.core.content.edit
 import com.hong.volace.MainActivity
 import com.hong.volace.R
+import com.hong.volace.alarm.ExactAlarms
 import com.hong.volace.audio.ApplyResult
 import com.hong.volace.audio.DeviceVolumes
 import com.hong.volace.audio.ProfileSwitcher
@@ -371,16 +370,9 @@ internal object BluetoothStore {
 /** An exact alarm due now: it may start the service, which the Bluetooth broadcast may not. */
 internal object BluetoothAlarm {
 
-    @SuppressLint("MissingPermission")
+    /** Without "アラームとリマインダー" (ExactAlarms) the service may not start, and the switch falls back to the notification. */
     fun setNow(context: Context) {
-        val alarms = context.getSystemService(AlarmManager::class.java) ?: return
-        val now = System.currentTimeMillis()
-        // USE_EXACT_ALARM is granted at install (lint only knows SCHEDULE_EXACT_ALARM).
-        if (alarms.canScheduleExactAlarms()) {
-            alarms.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, now, pendingIntent(context))
-        } else {
-            alarms.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, now, pendingIntent(context))
-        }
+        ExactAlarms.set(context, System.currentTimeMillis(), pendingIntent(context))
     }
 
     private fun pendingIntent(context: Context): PendingIntent = PendingIntent.getBroadcast(

@@ -48,6 +48,7 @@ import com.hong.volace.R
 import com.hong.volace.audio.ProfileSwitcher
 import com.hong.volace.data.Profile
 import com.hong.volace.timer.ProfileTimers
+import com.hong.volace.ui.alarm.ExactAlarmNotice
 import com.hong.volace.timer.nextOccurrence
 import com.hong.volace.timer.timerEndText
 import kotlinx.coroutines.launch
@@ -108,6 +109,7 @@ fun TimedApplyDialog(
         title = { Text(stringResource(R.string.timer_dialog_title, profile.name)) },
         text = {
             Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                ExactAlarmNotice(modifier = Modifier.padding(bottom = 12.dp))
                 Text(stringResource(R.string.timer_how_long), style = MaterialTheme.typography.titleSmall)
                 Spacer(Modifier.height(6.dp))
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
