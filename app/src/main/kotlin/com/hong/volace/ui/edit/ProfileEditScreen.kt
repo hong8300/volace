@@ -26,6 +26,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Add
@@ -45,6 +46,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
@@ -108,6 +113,10 @@ fun ProfileEditScreen(
     var showDiscardConfirm by rememberSaveable { mutableStateOf(false) }
     // A second tap while the first save is still writing would insert the new profile twice.
     var saving by remember { mutableStateOf(false) }
+    // "複製": the screen turns into a new, unsaved profile prefilled with what is shown.
+    var duplicating by rememberSaveable { mutableStateOf(false) }
+    val editId = if (duplicating) null else profileId
+    val snackbar = remember { SnackbarHostState() }
 
     // Back (gesture, key or the arrow) returns to the list. Without this the system back
     // finished the activity, closing the app and silently dropping the edits.
@@ -120,8 +129,8 @@ fun ProfileEditScreen(
 
     // Read live rather than from the copy loaded on open: a widget may apply another profile
     // while this screen is open.
-    val editingActive by remember(profileId) {
-        dao.observeAll().map { all -> profileId != null && all.any { it.id == profileId && it.isActive } }
+    val editingActive by remember(editId) {
+        dao.observeAll().map { all -> editId != null && all.any { it.id == editId && it.isActive } }
     }.collectAsState(initial = false)
 
     LaunchedEffect(profileId) {
@@ -157,6 +166,7 @@ fun ProfileEditScreen(
     val accent = Color(current.colorArgb)
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbar) },
         topBar = {
             TopAppBar(
                 navigationIcon = {
@@ -166,12 +176,34 @@ fun ProfileEditScreen(
                 },
                 title = {
                     Text(
-                        if (profileId == null) "新規プロファイル" else "プロファイルを編集",
+                        when {
+                            duplicating -> "複製したプロファイル"
+                            profileId == null -> "新規プロファイル"
+                            else -> "プロファイルを編集"
+                        },
                         fontWeight = FontWeight.SemiBold,
                     )
                 },
                 actions = {
-                    if (profileId != null) {
+                    if (editId != null) {
+                        TextButton(onClick = {
+                            scope.launch {
+                                profile = current.copy(
+                                    id = 0,
+                                    name = "${current.name}のコピー",
+                                    isActive = false,
+                                    orderIndex = dao.nextOrderIndex(),
+                                )
+                                // Nothing to compare against: backing out asks before dropping it.
+                                original = null
+                                duplicating = true
+                                snackbar.showSnackbar("複製しました。保存すると新しいプロファイルとして追加されます")
+                            }
+                        }) {
+                            Icon(Icons.Filled.ContentCopy, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text("複製")
+                        }
                         IconButton(onClick = { showDeleteConfirm = true }) {
                             Icon(
                                 Icons.Filled.Delete,
@@ -203,14 +235,14 @@ fun ProfileEditScreen(
                             saving = true
                             scope.launch {
                                 val toSave = current.copy(name = current.name.ifBlank { "無題" })
-                                val message = if (profileId == null) {
+                                val message = if (editId == null) {
                                     dao.insert(toSave)
                                     "「${toSave.name}」を保存しました"
                                 } else {
                                     dao.saveEdits(toSave.edits())
                                     // The profile in effect is re-applied, otherwise saving alone
                                     // would turn it into "変更あり" (the device keeps the old values).
-                                    val outcome = ProfileSwitcher.apply(context, profileId, onlyIfActive = true)
+                                    val outcome = ProfileSwitcher.apply(context, editId, onlyIfActive = true)
                                     when (outcome?.result) {
                                         null -> "「${toSave.name}」を保存しました"
                                         ApplyResult.Applied -> "「${toSave.name}」を保存して適用しました"
@@ -299,6 +331,85 @@ fun ProfileEditScreen(
                 )
             }
 
+            SectionTitle("着信モード")
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                RingerModeButton(
+                    icon = Icons.Filled.VolumeUp,
+                    label = "着信音",
+                    selected = current.ringerMode == AudioManager.RINGER_MODE_NORMAL,
+                    accent = accent,
+                    modifier = Modifier.weight(1f),
+                ) { profile = ranges.normalize(current.copy(ringerMode = AudioManager.RINGER_MODE_NORMAL)) }
+                RingerModeButton(
+                    icon = Icons.Filled.Vibration,
+                    label = "バイブ",
+                    selected = current.ringerMode == AudioManager.RINGER_MODE_VIBRATE,
+                    accent = accent,
+                    modifier = Modifier.weight(1f),
+                ) { profile = ranges.normalize(current.copy(ringerMode = AudioManager.RINGER_MODE_VIBRATE)) }
+                RingerModeButton(
+                    icon = Icons.Filled.VolumeOff,
+                    label = "サイレント",
+                    selected = current.ringerMode == AudioManager.RINGER_MODE_SILENT,
+                    accent = accent,
+                    modifier = Modifier.weight(1f),
+                ) { profile = ranges.normalize(current.copy(ringerMode = AudioManager.RINGER_MODE_SILENT)) }
+            }
+            // "サイレント" reads as "everything silent"; say what still sounds.
+            Text(
+                text = ringerModeHint(current.ringerMode),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 8.dp),
+            )
+
+            SectionTitle("音量")
+            FilledTonalButton(
+                onClick = {
+                    // The ringer mode too: taking the volumes alone while the phone was on vibrate
+                    // gave a "着信音あり" profile with a ringer of 0.
+                    val device = volumeApplier.snapshot()
+                    var next: Profile = current.copy(ringerMode = device.ringerMode)
+                    VolumeStream.entries.forEach { stream ->
+                        next = stream.copyWith(next, device.levelOf(stream))
+                    }
+                    val before = current
+                    profile = ranges.normalize(next)
+                    scope.launch {
+                        snackbar.currentSnackbarData?.dismiss()
+                        val result = snackbar.showSnackbar(
+                            "現在の着信モードと音量を取り込みました",
+                            actionLabel = "元に戻す",
+                            duration = SnackbarDuration.Short,
+                        )
+                        if (result == SnackbarResult.ActionPerformed) profile = before
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Icon(Icons.Filled.Download, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("現在の着信モードと音量を取り込む")
+            }
+            Spacer(Modifier.height(4.dp))
+
+            VolumeStream.entries.forEach { stream ->
+                StreamSliderRow(
+                    stream = stream,
+                    value = stream.valueOf(current),
+                    range = ranges.of(stream, current.ringerMode),
+                    max = ranges.max(stream),
+                    accent = accent,
+                    note = streamNote(stream, current.ringerMode),
+                    onValueChange = { newValue -> profile = stream.copyWith(current, newValue) },
+                )
+            }
+
+
+            // Looks come last: most visits are to change what the profile sounds like.
             SectionTitle("色")
             LazyRow(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -357,85 +468,6 @@ fun ProfileEditScreen(
                     }
                 }
             }
-
-            SectionTitle("着信モード")
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                RingerModeButton(
-                    icon = Icons.Filled.VolumeUp,
-                    label = "着信音",
-                    selected = current.ringerMode == AudioManager.RINGER_MODE_NORMAL,
-                    accent = accent,
-                    modifier = Modifier.weight(1f),
-                ) { profile = ranges.normalize(current.copy(ringerMode = AudioManager.RINGER_MODE_NORMAL)) }
-                RingerModeButton(
-                    icon = Icons.Filled.Vibration,
-                    label = "バイブ",
-                    selected = current.ringerMode == AudioManager.RINGER_MODE_VIBRATE,
-                    accent = accent,
-                    modifier = Modifier.weight(1f),
-                ) { profile = ranges.normalize(current.copy(ringerMode = AudioManager.RINGER_MODE_VIBRATE)) }
-                RingerModeButton(
-                    icon = Icons.Filled.VolumeOff,
-                    label = "サイレント",
-                    selected = current.ringerMode == AudioManager.RINGER_MODE_SILENT,
-                    accent = accent,
-                    modifier = Modifier.weight(1f),
-                ) { profile = ranges.normalize(current.copy(ringerMode = AudioManager.RINGER_MODE_SILENT)) }
-            }
-            if (current.ringerMode == AudioManager.RINGER_MODE_SILENT) {
-                Text(
-                    text = "「サイレント」を適用すると、Android の仕様でサイレント モード（DND）も" +
-                        "オンになり、ステータスバーはバイブ表示になります。" +
-                        "「着信音」に戻すと DND も自動で解除されます。",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 8.dp),
-                )
-            }
-
-            SectionTitle("音量")
-            FilledTonalButton(
-                onClick = {
-                    // The ringer mode too: taking the volumes alone while the phone was on vibrate
-                    // gave a "着信音あり" profile with a ringer of 0.
-                    val device = volumeApplier.snapshot()
-                    var next: Profile = current.copy(ringerMode = device.ringerMode)
-                    VolumeStream.entries.forEach { stream ->
-                        next = stream.copyWith(next, device.levelOf(stream))
-                    }
-                    profile = ranges.normalize(next)
-                },
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Icon(Icons.Filled.Download, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(8.dp))
-                Text("現在の着信モードと音量を取り込む")
-            }
-            Spacer(Modifier.height(4.dp))
-
-            VolumeStream.entries.forEach { stream ->
-                StreamSliderRow(
-                    stream = stream,
-                    value = stream.valueOf(current),
-                    range = ranges.of(stream, current.ringerMode),
-                    max = ranges.max(stream),
-                    accent = accent,
-                    onValueChange = { newValue -> profile = stream.copyWith(current, newValue) },
-                )
-            }
-
-            if (VolumeStream.entries.isNotEmpty()) {
-                Text(
-                    text = "※ この端末では「システム」は「着信音」と連動しています（Android の仕様）。" +
-                        "両方を設定した場合は着信音の値が優先されます。",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 12.dp),
-                )
-            }
         }
     }
 }
@@ -459,6 +491,8 @@ private fun StreamSliderRow(
     range: IntRange,
     max: Int,
     accent: Color,
+    /** Shown next to the name, e.g. that the stream does not sound in this ringer mode. */
+    note: String?,
     onValueChange: (Int) -> Unit,
 ) {
     Surface(
@@ -475,12 +509,20 @@ private fun StreamSliderRow(
                     modifier = Modifier.size(20.dp),
                 )
                 Spacer(Modifier.width(8.dp))
-                Text(
-                    stream.label,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium,
-                    modifier = Modifier.weight(1f),
-                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        stream.label,
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Medium,
+                    )
+                    if (note != null) {
+                        Text(
+                            note,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
                 Text(
                     "$value / $max",
                     style = MaterialTheme.typography.labelMedium,
@@ -580,3 +622,25 @@ private val ProfileSaver = listSaver<Profile?, Any>(
         )
     },
 )
+
+private fun ringerModeHint(mode: Int): String = when (mode) {
+    AudioManager.RINGER_MODE_VIBRATE ->
+        "着信・通知は鳴らずにバイブします。メディア・アラーム・通話は下の音量のまま鳴ります。"
+    AudioManager.RINGER_MODE_SILENT ->
+        "着信・通知は鳴らず、バイブもしません。メディア・アラーム・通話は下の音量のまま鳴ります。" +
+            "Android の仕様でサイレント モード（DND）もオンになり、ステータスバーはバイブ表示になります" +
+            "（「着信音」に戻すと自動で解除）。"
+    else -> "着信・通知は下の音量で鳴ります。"
+}
+
+/** Why a slider may not do what it seems to, in this ringer mode. */
+private fun streamNote(stream: VolumeStream, ringerMode: Int): String? {
+    val ringerSilenced = ringerMode != AudioManager.RINGER_MODE_NORMAL
+    return when {
+        ringerSilenced && stream in setOf(VolumeStream.RINGER, VolumeStream.NOTIFICATION, VolumeStream.SYSTEM) ->
+            "このモードでは鳴りません"
+        // Aliased on Pixel (DESIGN.md 8): whichever is written last wins, and that is the ringer.
+        stream == VolumeStream.SYSTEM -> "着信音と連動（着信音の値が優先）"
+        else -> null
+    }
+}
