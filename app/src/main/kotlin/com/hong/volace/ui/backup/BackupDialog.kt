@@ -22,6 +22,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.hong.volace.audio.VolumeApplier
@@ -51,6 +52,7 @@ fun BackupDialog(
     onMessage: (String) -> Unit,
 ) {
     val context = LocalContext.current
+    val resources = LocalResources.current
     val scope = rememberCoroutineScope()
     var pending by remember { mutableStateOf<List<Profile>?>(null) }
 
@@ -60,8 +62,8 @@ fun BackupDialog(
             val message = runCatching {
                 val profiles = dao.getAllOnce()
                 write(context, uri, ProfileBackup.toJson(profiles))
-                context.resources.getQuantityString(R.plurals.backup_saved, profiles.size, profiles.size)
-            }.getOrElse { context.getString(R.string.backup_save_failed, it.message.orEmpty()) }
+                resources.getQuantityString(R.plurals.backup_saved, profiles.size, profiles.size)
+            }.getOrElse { resources.getString(R.string.backup_save_failed, it.message.orEmpty()) }
             onMessage(message)
             onDismiss()
         }
@@ -73,7 +75,7 @@ fun BackupDialog(
             runCatching { ProfileBackup.fromJson(read(context, uri)) }
                 .onSuccess { profiles ->
                     if (profiles.isEmpty()) {
-                        onMessage(context.getString(R.string.backup_file_empty))
+                        onMessage(resources.getString(R.string.backup_file_empty))
                         onDismiss()
                     } else {
                         pending = profiles
@@ -81,7 +83,7 @@ fun BackupDialog(
                 }
                 .onFailure {
                     val reason = (it as? ProfileBackup.FormatException)?.describe(context) ?: it.message.orEmpty()
-                    onMessage(context.getString(R.string.backup_read_failed, reason))
+                    onMessage(resources.getString(R.string.backup_read_failed, reason))
                     onDismiss()
                 }
         }

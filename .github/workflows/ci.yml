@@ -40,3 +40,7 @@ jobs:
         with:
           name: test-report
           path: app/build/reports/tests/
+
+      # Errors only fail the build (warnings are reported but tolerated).
+      - name: Lint
+        run: ./gradlew lintDebug
