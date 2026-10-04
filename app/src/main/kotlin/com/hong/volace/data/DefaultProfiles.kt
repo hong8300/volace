@@ -1,6 +1,7 @@
 package com.hong.volace.data
 
 import android.media.AudioManager
+import com.hong.volace.R
 import com.hong.volace.audio.VolumeApplier
 import com.hong.volace.audio.VolumeStream
 import com.hong.volace.audio.ranges
@@ -15,6 +16,8 @@ object DefaultProfiles {
 
     fun build(applier: VolumeApplier): List<Profile> {
         val ranges = applier.ranges()
+        // Named in the phone's language at the time they are created; renaming is up to the user.
+        fun name(id: Int) = applier.context.getString(id)
         fun v(stream: VolumeStream, percent: Double): Int =
             (ranges.max(stream) * percent).roundToInt()
 
@@ -46,22 +49,22 @@ object DefaultProfiles {
 
         return listOf(
             profile(
-                "通常", 0, AudioManager.RINGER_MODE_NORMAL,
+                name(R.string.default_normal), 0, AudioManager.RINGER_MODE_NORMAL,
                 ring = 0.70, notification = 0.70, media = 0.60, alarm = 0.80, voice = 0.70, system = 0.70,
                 color = ProfilePalette.COLORS[0], icon = ProfileIcon.VOLUME_UP,
             ),
             profile(
-                "マナー", 1, AudioManager.RINGER_MODE_VIBRATE,
+                name(R.string.default_vibrate), 1, AudioManager.RINGER_MODE_VIBRATE,
                 ring = 0.0, notification = 0.0, media = 0.45, alarm = 0.80, voice = 0.70, system = 0.0,
                 color = ProfilePalette.COLORS[7], icon = ProfileIcon.VIBRATION,
             ),
             profile(
-                "サイレント", 2, AudioManager.RINGER_MODE_SILENT,
+                name(R.string.default_silent), 2, AudioManager.RINGER_MODE_SILENT,
                 ring = 0.0, notification = 0.0, media = 0.30, alarm = 0.60, voice = 0.60, system = 0.0,
                 color = ProfilePalette.COLORS[9], icon = ProfileIcon.NIGHT,
             ),
             profile(
-                "音楽", 3, AudioManager.RINGER_MODE_NORMAL,
+                name(R.string.default_music), 3, AudioManager.RINGER_MODE_NORMAL,
                 ring = 0.50, notification = 0.50, media = 1.0, alarm = 0.80, voice = 0.70, system = 0.50,
                 color = ProfilePalette.COLORS[1], icon = ProfileIcon.MUSIC,
             ),

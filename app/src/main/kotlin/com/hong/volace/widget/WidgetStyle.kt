@@ -2,6 +2,7 @@ package com.hong.volace.widget
 
 import android.appwidget.AppWidgetProvider
 import androidx.annotation.LayoutRes
+import androidx.annotation.StringRes
 import com.hong.volace.R
 
 /** The four view ids that make up one tappable profile cell in a widget layout. */
@@ -67,21 +68,21 @@ enum class WidgetStyle(
     val secondRow: Int?,
     val status: StatusPanel,
     val title: String,
-    val subtitle: String,
+    @StringRes val subtitle: Int,
 ) {
     SINGLE(
         R.layout.widget_1x1, 1, Volace1x1Provider::class.java,
         cycles = true, secondRow = null, status = StatusPanel.NONE,
-        title = "1 × 1", subtitle = "タップで次のプロファイルへ。横に広げると一覧から選べる",
+        title = "1 × 1", subtitle = R.string.widget_style_1x1,
     ),
     ROW4(
         R.layout.widget_1x4, 4, Volace1x4Provider::class.java,
         cycles = false, secondRow = null, status = StatusPanel.MINI,
-        title = "4 × 1", subtitle = "先頭4件を横一列に表示 + 現在の音量",
+        title = "4 × 1", subtitle = R.string.widget_style_1x4,
     ),
     GRID8(
         R.layout.widget_2x4, 8, Volace2x4Provider::class.java,
         cycles = false, secondRow = R.id.row_1, status = StatusPanel.FULL,
-        title = "4 × 2", subtitle = "現在の音量 + 先頭8件を2段グリッドで表示",
+        title = "4 × 2", subtitle = R.string.widget_style_2x4,
     ),
 }

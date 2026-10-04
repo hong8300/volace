@@ -1,5 +1,8 @@
 package com.hong.volace.data
 
+import android.content.Context
+import androidx.annotation.StringRes
+import com.hong.volace.R
 import com.hong.volace.audio.VolumeStream
 import com.hong.volace.audio.isKeptBy
 import org.json.JSONArray
@@ -18,7 +21,10 @@ object ProfileBackup {
     private const val FORMAT = "volace-profiles"
     private const val VERSION = 1
 
-    class FormatException(message: String) : Exception(message)
+    /** Why a file was refused, as a string resource so the UI can say it in the phone's language. */
+    class FormatException(@StringRes val reason: Int, vararg val args: Any) : Exception("format: $reason") {
+        fun describe(context: Context): String = context.getString(reason, *args)
+    }
 
     fun toJson(profiles: List<Profile>): String {
         val list = JSONArray()
@@ -56,26 +62,26 @@ object ProfileBackup {
         val root = try {
             JSONObject(text)
         } catch (e: JSONException) {
-            throw FormatException("JSON として読めません")
+            throw FormatException(R.string.backup_err_not_json)
         }
-        if (root.optString("format") != FORMAT) throw FormatException("Volace のバックアップではありません")
+        if (root.optString("format") != FORMAT) throw FormatException(R.string.backup_err_not_volace)
         val version = root.optInt("version", -1)
-        if (version !in 1..VERSION) throw FormatException("対応していない形式です（version $version）")
-        val list = root.optJSONArray("profiles") ?: throw FormatException("プロファイルがありません")
+        if (version !in 1..VERSION) throw FormatException(R.string.backup_err_version, version)
+        val list = root.optJSONArray("profiles") ?: throw FormatException(R.string.backup_err_no_profiles)
 
         return (0 until list.length()).map { i ->
-            val o = list.optJSONObject(i) ?: throw FormatException("${i + 1} 件目が読めません")
+            val o = list.optJSONObject(i) ?: throw FormatException(R.string.backup_err_unreadable, i + 1)
             fun int(key: String): Int =
                 if (o.has(key)) o.optInt(key, Int.MIN_VALUE).takeIf { it != Int.MIN_VALUE }
-                    ?: throw FormatException("${i + 1} 件目の $key が数値ではありません")
-                else throw FormatException("${i + 1} 件目に $key がありません")
+                    ?: throw FormatException(R.string.backup_err_not_number, i + 1, key)
+                else throw FormatException(R.string.backup_err_missing, i + 1, key)
             val name = o.optString("name").takeIf { it.isNotBlank() }
-                ?: throw FormatException("${i + 1} 件目に名前がありません")
+                ?: throw FormatException(R.string.backup_err_no_name, i + 1)
             Profile(
                 name = name,
                 orderIndex = firstOrder + i,
                 ringerMode = int("ringerMode").takeIf { it in 0..2 }
-                    ?: throw FormatException("${i + 1} 件目の着信モードが不正です"),
+                    ?: throw FormatException(R.string.backup_err_ringer, i + 1),
                 ringVolume = int("ring"),
                 notificationVolume = int("notification"),
                 mediaVolume = int("media"),

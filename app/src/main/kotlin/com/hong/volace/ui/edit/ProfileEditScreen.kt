@@ -97,6 +97,9 @@ import com.hong.volace.widget.WidgetRefresher
 import kotlin.math.roundToInt
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import androidx.annotation.StringRes
+import androidx.compose.ui.res.stringResource
+import com.hong.volace.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -142,7 +145,7 @@ fun ProfileEditScreen(
         val loaded = profileId?.let { dao.getById(it) } ?: run {
             val index = dao.nextOrderIndex()
             Profile(
-                name = "新しいプロファイル",
+                name = context.getString(R.string.new_profile_name),
                 orderIndex = index,
                 ringerMode = volumeApplier.snapshot().ringerMode,
                 ringVolume = volumeApplier.currentVolume(VolumeStream.RINGER),
@@ -175,16 +178,18 @@ fun ProfileEditScreen(
             TopAppBar(
                 navigationIcon = {
                     IconButton(onClick = { leave() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "一覧に戻る")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back_to_list))
                     }
                 },
                 title = {
                     Text(
-                        when {
-                            duplicating -> "複製したプロファイル"
-                            profileId == null -> "新規プロファイル"
-                            else -> "プロファイルを編集"
-                        },
+                        stringResource(
+                            when {
+                                duplicating -> R.string.title_duplicate
+                                profileId == null -> R.string.title_new
+                                else -> R.string.title_edit
+                            },
+                        ),
                         fontWeight = FontWeight.SemiBold,
                     )
                 },
@@ -194,24 +199,24 @@ fun ProfileEditScreen(
                             scope.launch {
                                 profile = current.copy(
                                     id = 0,
-                                    name = "${current.name}のコピー",
+                                    name = context.getString(R.string.copy_name, current.name),
                                     isActive = false,
                                     orderIndex = dao.nextOrderIndex(),
                                 )
                                 // Nothing to compare against: backing out asks before dropping it.
                                 original = null
                                 duplicating = true
-                                snackbar.showSnackbar("複製しました。保存すると新しいプロファイルとして追加されます")
+                                snackbar.showSnackbar(context.getString(R.string.duplicated_message))
                             }
                         }) {
                             Icon(Icons.Filled.ContentCopy, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.width(4.dp))
-                            Text("複製")
+                            Text(stringResource(R.string.duplicate))
                         }
                         IconButton(onClick = { showDeleteConfirm = true }) {
                             Icon(
                                 Icons.Filled.Delete,
-                                contentDescription = "削除",
+                                contentDescription = stringResource(R.string.delete),
                                 tint = MaterialTheme.colorScheme.error,
                             )
                         }
@@ -228,7 +233,7 @@ fun ProfileEditScreen(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     OutlinedButton(onClick = { leave() }, modifier = Modifier.weight(1f).height(48.dp)) {
-                        Text("キャンセル")
+                        Text(stringResource(R.string.cancel))
                     }
                     Button(
                         enabled = !saving,
@@ -238,19 +243,22 @@ fun ProfileEditScreen(
                             if (saving) return@onClick
                             saving = true
                             scope.launch {
-                                val toSave = current.copy(name = current.name.ifBlank { "無題" })
+                                val toSave = current.copy(name = current.name.ifBlank { context.getString(R.string.untitled) })
                                 val message = if (editId == null) {
                                     dao.insert(toSave)
-                                    "「${toSave.name}」を保存しました"
+                                    context.getString(R.string.saved, toSave.name)
                                 } else {
                                     dao.saveEdits(toSave.edits())
                                     // The profile in effect is re-applied, otherwise saving alone
                                     // would turn it into "変更あり" (the device keeps the old values).
                                     val outcome = ProfileSwitcher.apply(context, editId, onlyIfActive = true)
                                     when (outcome?.result) {
-                                        null -> "「${toSave.name}」を保存しました"
-                                        ApplyResult.Applied -> "「${toSave.name}」を保存して適用しました"
-                                        else -> "保存しました。" + outcome.result.message(toSave.name)
+                                        null -> context.getString(R.string.saved, toSave.name)
+                                        ApplyResult.Applied -> context.getString(R.string.saved_applied, toSave.name)
+                                        else -> context.getString(
+                                            R.string.saved_with_problem,
+                                            outcome.result.message(context, toSave.name),
+                                        )
                                     }
                                 }
                                 WidgetRefresher.request(context)
@@ -261,7 +269,10 @@ fun ProfileEditScreen(
                     ) {
                         Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(6.dp))
-                        Text(if (editingActive) "保存して適用" else "保存", fontWeight = FontWeight.SemiBold)
+                        Text(
+                            stringResource(if (editingActive) R.string.save_and_apply else R.string.save),
+                            fontWeight = FontWeight.SemiBold,
+                        )
                     }
                 }
             }
@@ -270,16 +281,16 @@ fun ProfileEditScreen(
         if (showDiscardConfirm) {
             AlertDialog(
                 onDismissRequest = { showDiscardConfirm = false },
-                title = { Text("変更を破棄しますか？") },
-                text = { Text("保存していない変更があります。破棄して一覧に戻りますか？") },
+                title = { Text(stringResource(R.string.discard_title)) },
+                text = { Text(stringResource(R.string.discard_body)) },
                 confirmButton = {
                     TextButton(onClick = {
                         showDiscardConfirm = false
                         onDone(null)
-                    }) { Text("破棄して戻る", color = MaterialTheme.colorScheme.error) }
+                    }) { Text(stringResource(R.string.discard_confirm), color = MaterialTheme.colorScheme.error) }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showDiscardConfirm = false }) { Text("編集を続ける") }
+                    TextButton(onClick = { showDiscardConfirm = false }) { Text(stringResource(R.string.keep_editing)) }
                 },
             )
         }
@@ -287,19 +298,19 @@ fun ProfileEditScreen(
         if (showDeleteConfirm) {
             AlertDialog(
                 onDismissRequest = { showDeleteConfirm = false },
-                title = { Text("プロファイルを削除") },
-                text = { Text("「${current.name}」を削除します。元に戻せません。") },
+                title = { Text(stringResource(R.string.delete_title)) },
+                text = { Text(stringResource(R.string.delete_body, current.name)) },
                 confirmButton = {
                     TextButton(onClick = {
                         scope.launch {
                             dao.delete(current)
                             WidgetRefresher.request(context)
-                            onDone("「${current.name}」を削除しました")
+                            onDone(context.getString(R.string.deleted, current.name))
                         }
-                    }) { Text("削除", color = MaterialTheme.colorScheme.error) }
+                    }) { Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error) }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showDeleteConfirm = false }) { Text("キャンセル") }
+                    TextButton(onClick = { showDeleteConfirm = false }) { Text(stringResource(R.string.cancel)) }
                 },
             )
         }
@@ -329,34 +340,34 @@ fun ProfileEditScreen(
                 OutlinedTextField(
                     value = current.name,
                     onValueChange = { profile = current.copy(name = it) },
-                    label = { Text("名前") },
+                    label = { Text(stringResource(R.string.name)) },
                     singleLine = true,
                     modifier = Modifier.weight(1f),
                 )
             }
 
-            SectionTitle("着信モード")
+            SectionTitle(stringResource(R.string.ringer_mode))
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 RingerModeButton(
                     icon = Icons.Filled.VolumeUp,
-                    label = "着信音",
+                    label = stringResource(R.string.ringer_button_normal),
                     selected = current.ringerMode == AudioManager.RINGER_MODE_NORMAL,
                     accent = accent,
                     modifier = Modifier.weight(1f),
                 ) { profile = ranges.normalize(current.copy(ringerMode = AudioManager.RINGER_MODE_NORMAL)) }
                 RingerModeButton(
                     icon = Icons.Filled.Vibration,
-                    label = "バイブ",
+                    label = stringResource(R.string.ringer_vibrate),
                     selected = current.ringerMode == AudioManager.RINGER_MODE_VIBRATE,
                     accent = accent,
                     modifier = Modifier.weight(1f),
                 ) { profile = ranges.normalize(current.copy(ringerMode = AudioManager.RINGER_MODE_VIBRATE)) }
                 RingerModeButton(
                     icon = Icons.Filled.VolumeOff,
-                    label = "サイレント",
+                    label = stringResource(R.string.ringer_silent),
                     selected = current.ringerMode == AudioManager.RINGER_MODE_SILENT,
                     accent = accent,
                     modifier = Modifier.weight(1f),
@@ -364,13 +375,13 @@ fun ProfileEditScreen(
             }
             // "サイレント" reads as "everything silent"; say what still sounds.
             Text(
-                text = ringerModeHint(current.ringerMode),
+                text = stringResource(ringerModeHint(current.ringerMode)),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 8.dp),
             )
 
-            SectionTitle("音量")
+            SectionTitle(stringResource(R.string.section_volume))
             FilledTonalButton(
                 onClick = {
                     // The ringer mode too: taking the volumes alone while the phone was on vibrate
@@ -385,8 +396,8 @@ fun ProfileEditScreen(
                     scope.launch {
                         snackbar.currentSnackbarData?.dismiss()
                         val result = snackbar.showSnackbar(
-                            "現在の着信モードと音量を取り込みました",
-                            actionLabel = "元に戻す",
+                            context.getString(R.string.captured),
+                            actionLabel = context.getString(R.string.undo),
                             duration = SnackbarDuration.Short,
                         )
                         if (result == SnackbarResult.ActionPerformed) profile = before
@@ -396,7 +407,7 @@ fun ProfileEditScreen(
             ) {
                 Icon(Icons.Filled.Download, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(8.dp))
-                Text("現在の着信モードと音量を取り込む")
+                Text(stringResource(R.string.capture))
             }
             Spacer(Modifier.height(4.dp))
 
@@ -407,7 +418,7 @@ fun ProfileEditScreen(
                     range = ranges.of(stream, current.ringerMode),
                     max = ranges.max(stream),
                     accent = accent,
-                    note = streamNote(stream, current.ringerMode),
+                    note = streamNote(stream, current.ringerMode)?.let { stringResource(it) },
                     kept = stream.isKeptBy(current),
                     onKeptChange = { keep -> profile = stream.keepIn(current, keep) },
                     onValueChange = { newValue -> profile = stream.copyWith(current, newValue) },
@@ -416,7 +427,7 @@ fun ProfileEditScreen(
 
 
             // Looks come last: most visits are to change what the profile sounds like.
-            SectionTitle("色")
+            SectionTitle(stringResource(R.string.section_color))
             LazyRow(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 contentPadding = PaddingValues(vertical = 4.dp),
@@ -448,7 +459,7 @@ fun ProfileEditScreen(
                 }
             }
 
-            SectionTitle("アイコン")
+            SectionTitle(stringResource(R.string.section_icon))
             LazyRow(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 contentPadding = PaddingValues(vertical = 4.dp),
@@ -467,7 +478,7 @@ fun ProfileEditScreen(
                     ) {
                         Icon(
                             painter = painterResource(entry.res),
-                            contentDescription = entry.label,
+                            contentDescription = stringResource(entry.label),
                             tint = if (selected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(23.dp),
                         )
@@ -520,7 +531,7 @@ private fun StreamSliderRow(
                 Spacer(Modifier.width(8.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        stream.label,
+                        stringResource(stream.label),
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.Medium,
                     )
@@ -533,7 +544,7 @@ private fun StreamSliderRow(
                     }
                 }
                 Text(
-                    if (kept) "変更しない" else "$value / $max",
+                    if (kept) stringResource(R.string.keep_value) else "$value / $max",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -546,7 +557,7 @@ private fun StreamSliderRow(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    "この音量は変更しない",
+                    stringResource(R.string.keep_switch),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.weight(1f),
@@ -562,7 +573,7 @@ private fun StreamSliderRow(
                     onClick = { onValueChange((value - 1).coerceAtLeast(range.first)) },
                     enabled = !kept && value > range.first,
                     modifier = Modifier.size(36.dp),
-                ) { Icon(Icons.Filled.Remove, contentDescription = "下げる", modifier = Modifier.size(18.dp)) }
+                ) { Icon(Icons.Filled.Remove, contentDescription = stringResource(R.string.volume_down), modifier = Modifier.size(18.dp)) }
                 Slider(
                     value = value.toFloat(),
                     enabled = !kept,
@@ -583,7 +594,7 @@ private fun StreamSliderRow(
                     onClick = { onValueChange((value + 1).coerceAtMost(range.last)) },
                     enabled = !kept && value < range.last,
                     modifier = Modifier.size(36.dp),
-                ) { Icon(Icons.Filled.Add, contentDescription = "上げる", modifier = Modifier.size(18.dp)) }
+                ) { Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.volume_up), modifier = Modifier.size(18.dp)) }
             }
         }
     }
@@ -653,24 +664,22 @@ private val ProfileSaver = listSaver<Profile?, Any>(
     },
 )
 
-private fun ringerModeHint(mode: Int): String = when (mode) {
-    AudioManager.RINGER_MODE_VIBRATE ->
-        "着信・通知は鳴らずにバイブします。メディア・アラーム・通話は下の音量のまま鳴ります。"
-    AudioManager.RINGER_MODE_SILENT ->
-        "着信・通知は鳴らず、バイブもしません。メディア・アラーム・通話は下の音量のまま鳴ります。" +
-            "Android の仕様でサイレント モード（DND）もオンになり、ステータスバーはバイブ表示になります" +
-            "（「着信音」に戻すと自動で解除）。"
-    else -> "着信・通知は下の音量で鳴ります。"
+@StringRes
+private fun ringerModeHint(mode: Int): Int = when (mode) {
+    AudioManager.RINGER_MODE_VIBRATE -> R.string.hint_vibrate
+    AudioManager.RINGER_MODE_SILENT -> R.string.hint_silent
+    else -> R.string.hint_normal
 }
 
 /** Why a slider may not do what it seems to, in this ringer mode. */
-private fun streamNote(stream: VolumeStream, ringerMode: Int): String? {
+@StringRes
+private fun streamNote(stream: VolumeStream, ringerMode: Int): Int? {
     val ringerSilenced = ringerMode != AudioManager.RINGER_MODE_NORMAL
     return when {
         ringerSilenced && stream in setOf(VolumeStream.RINGER, VolumeStream.NOTIFICATION, VolumeStream.SYSTEM) ->
-            "このモードでは鳴りません"
+            R.string.note_silenced
         // Aliased on Pixel (DESIGN.md 8): whichever is written last wins, and that is the ringer.
-        stream == VolumeStream.SYSTEM -> "着信音と連動（着信音の値が優先）"
+        stream == VolumeStream.SYSTEM -> R.string.note_system_linked
         else -> null
     }
 }

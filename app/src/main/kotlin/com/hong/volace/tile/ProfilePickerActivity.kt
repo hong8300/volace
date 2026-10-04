@@ -54,6 +54,8 @@ import com.hong.volace.widget.WidgetState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import androidx.compose.ui.res.stringResource
+import com.hong.volace.R
 
 /**
  * The small chooser the Quick Settings tile opens: every profile by name, tap to apply. It is a
@@ -78,7 +80,7 @@ class ProfilePickerActivity : ComponentActivity() {
         val outcome = ProfileSwitcher.apply(this, profile.id)
         WidgetRefresher.request(this)
         if (outcome != null) {
-            Toast.makeText(this, outcome.result.message(outcome.profile.name), Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, outcome.result.message(this, outcome.profile.name), Toast.LENGTH_SHORT).show()
         }
         finish()
     }
@@ -124,7 +126,7 @@ private fun Picker(
         ) {
             Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 18.dp)) {
                 Text(
-                    "プロファイルを選ぶ",
+                    stringResource(R.string.picker_title),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.padding(start = 8.dp, bottom = 8.dp),
@@ -133,14 +135,13 @@ private fun Picker(
                 when {
                     current == null -> Unit
                     !current.hasAccess -> Text(
-                        "「サイレント モードへのアクセス」が許可されていないため適用できません。" +
-                            "「アプリを開く」から許可してください。",
+                        stringResource(R.string.picker_needs_access),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.error,
                         modifier = Modifier.padding(8.dp),
                     )
                     current.profiles.isEmpty() -> Text(
-                        "プロファイルがありません。「アプリを開く」から作成してください。",
+                        stringResource(R.string.picker_empty),
                         style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.padding(8.dp),
                     )
@@ -159,8 +160,8 @@ private fun Picker(
                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
-                    TextButton(onClick = onOpenApp) { Text("アプリを開く") }
-                    TextButton(onClick = onDismiss) { Text("閉じる") }
+                    TextButton(onClick = onOpenApp) { Text(stringResource(R.string.open_app)) }
+                    TextButton(onClick = onDismiss) { Text(stringResource(R.string.close)) }
                 }
             }
         }
@@ -200,8 +201,8 @@ private fun PickerRow(profile: Profile, drifted: Boolean, onClick: () -> Unit) {
                 modifier = Modifier.weight(1f),
             )
             when {
-                active -> Text("適用中", color = accent, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                drifted -> Text("変更あり", color = accent, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                active -> Text(stringResource(R.string.active), color = accent, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                drifted -> Text(stringResource(R.string.changed), color = accent, fontSize = 12.sp, fontWeight = FontWeight.Bold)
             }
         }
     }

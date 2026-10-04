@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.lifecycle.lifecycleScope
+import com.hong.volace.R
 import com.hong.volace.audio.ProfileSwitcher
 import com.hong.volace.audio.message
 import com.hong.volace.widget.WidgetRefresher
@@ -23,7 +24,8 @@ class ApplyShortcutActivity : ComponentActivity() {
             val outcome = ProfileSwitcher.apply(this@ApplyShortcutActivity, id)
             Toast.makeText(
                 this@ApplyShortcutActivity,
-                outcome?.result?.message(outcome.profile.name) ?: "このプロファイルは削除されています",
+                outcome?.result?.message(this@ApplyShortcutActivity, outcome.profile.name)
+                    ?: getString(R.string.shortcut_profile_gone),
                 Toast.LENGTH_SHORT,
             ).show()
             WidgetRefresher.request(this@ApplyShortcutActivity)

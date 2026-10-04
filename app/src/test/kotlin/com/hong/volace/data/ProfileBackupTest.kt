@@ -1,6 +1,9 @@
 package com.hong.volace.data
 
 import com.hong.volace.audio.VolumeStream
+import com.hong.volace.R
+import androidx.test.core.app.ApplicationProvider
+import org.robolectric.annotation.Config
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
@@ -52,19 +55,40 @@ class ProfileBackupTest {
 
     @Test
     fun foreignOrBrokenFiles_areRefusedWithAReason() {
-        fun message(text: String) =
-            assertThrows(ProfileBackup.FormatException::class.java) { ProfileBackup.fromJson(text) }.message
+        fun reason(text: String) =
+            assertThrows(ProfileBackup.FormatException::class.java) { ProfileBackup.fromJson(text) }
+                .let { it.reason to it.args.toList() }
 
-        assertEquals("JSON として読めません", message("not json"))
-        assertEquals("Volace のバックアップではありません", message("""{"profiles": []}"""))
-        assertEquals("対応していない形式です（version 2）", message("""{"format":"volace-profiles","version":2,"profiles":[]}"""))
+        assertEquals(R.string.backup_err_not_json to emptyList<Any>(), reason("not json"))
+        assertEquals(R.string.backup_err_not_volace to emptyList<Any>(), reason("""{"profiles": []}"""))
         assertEquals(
-            "1 件目に media がありません",
-            message("""{"format":"volace-profiles","version":1,"profiles":[{"name":"x","ringerMode":2,"ring":1,"notification":1,"alarm":1,"voiceCall":1,"system":1,"color":0}]}"""),
+            R.string.backup_err_version to listOf<Any>(2),
+            reason("""{"format":"volace-profiles","version":2,"profiles":[]}"""),
         )
         assertEquals(
-            "1 件目の着信モードが不正です",
-            message("""{"format":"volace-profiles","version":1,"profiles":[{"name":"x","ringerMode":5,"ring":1,"notification":1,"media":1,"alarm":1,"voiceCall":1,"system":1,"color":0}]}"""),
+            R.string.backup_err_missing to listOf<Any>(1, "media"),
+            reason("""{"format":"volace-profiles","version":1,"profiles":[{"name":"x","ringerMode":2,"ring":1,"notification":1,"alarm":1,"voiceCall":1,"system":1,"color":0}]}"""),
         )
+        assertEquals(
+            R.string.backup_err_ringer to listOf<Any>(1),
+            reason("""{"format":"volace-profiles","version":1,"profiles":[{"name":"x","ringerMode":5,"ring":1,"notification":1,"media":1,"alarm":1,"voiceCall":1,"system":1,"color":0}]}"""),
+        )
+    }
+
+    /** The reasons read naturally in both languages (Japanese is the default resource). */
+    @Test
+    @Config(qualifiers = "ja")
+    fun reasons_inJapanese() {
+        val e = assertThrows(ProfileBackup.FormatException::class.java) {
+            ProfileBackup.fromJson("""{"format":"volace-profiles","version":1,"profiles":[{"name":"x","ringerMode":2,"ring":1,"notification":1,"alarm":1,"voiceCall":1,"system":1,"color":0}]}""")
+        }
+        assertEquals("1 件目に media がありません", e.describe(ApplicationProvider.getApplicationContext()))
+    }
+
+    @Test
+    @Config(qualifiers = "en")
+    fun reasons_inEnglish() {
+        val e = assertThrows(ProfileBackup.FormatException::class.java) { ProfileBackup.fromJson("not json") }
+        assertEquals("Not readable as JSON", e.describe(ApplicationProvider.getApplicationContext()))
     }
 }

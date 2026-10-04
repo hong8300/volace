@@ -8,12 +8,14 @@ import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Tune
+import androidx.annotation.StringRes
 import androidx.compose.ui.graphics.vector.ImageVector
+import com.hong.volace.R
 import com.hong.volace.data.Profile
 
 enum class VolumeStream(
     val streamType: Int,
-    val label: String,
+    @StringRes val label: Int,
     /** Single letter shown under the mini bars in the profile list. */
     val shortLabel: String,
     val icon: ImageVector,
@@ -22,12 +24,12 @@ enum class VolumeStream(
     /** Name in backup files. Never rename. */
     val key: String,
 ) {
-    RINGER(AudioManager.STREAM_RING, "着信音", "R", Icons.Filled.Notifications, 1 shl 0, "ring"),
-    NOTIFICATION(AudioManager.STREAM_NOTIFICATION, "通知", "N", Icons.Filled.NotificationsActive, 1 shl 1, "notification"),
-    MEDIA(AudioManager.STREAM_MUSIC, "メディア", "M", Icons.Filled.MusicNote, 1 shl 2, "media"),
-    ALARM(AudioManager.STREAM_ALARM, "アラーム", "A", Icons.Filled.Alarm, 1 shl 3, "alarm"),
-    VOICE_CALL(AudioManager.STREAM_VOICE_CALL, "通話", "V", Icons.Filled.Call, 1 shl 4, "voiceCall"),
-    SYSTEM(AudioManager.STREAM_SYSTEM, "システム", "S", Icons.Filled.Tune, 1 shl 5, "system"),
+    RINGER(AudioManager.STREAM_RING, R.string.stream_ring, "R", Icons.Filled.Notifications, 1 shl 0, "ring"),
+    NOTIFICATION(AudioManager.STREAM_NOTIFICATION, R.string.stream_notification, "N", Icons.Filled.NotificationsActive, 1 shl 1, "notification"),
+    MEDIA(AudioManager.STREAM_MUSIC, R.string.stream_media, "M", Icons.Filled.MusicNote, 1 shl 2, "media"),
+    ALARM(AudioManager.STREAM_ALARM, R.string.stream_alarm, "A", Icons.Filled.Alarm, 1 shl 3, "alarm"),
+    VOICE_CALL(AudioManager.STREAM_VOICE_CALL, R.string.stream_voice_call, "V", Icons.Filled.Call, 1 shl 4, "voiceCall"),
+    SYSTEM(AudioManager.STREAM_SYSTEM, R.string.stream_system, "S", Icons.Filled.Tune, 1 shl 5, "system"),
 }
 
 /** "変更しない": applying the profile leaves this stream as the device has it. */

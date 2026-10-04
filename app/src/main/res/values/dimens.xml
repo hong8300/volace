@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Width of the stream names next to the level bars; English names are longer. -->
+    <dimen name="level_label_width">52dp</dimen>
+    <dimen name="widget_level_label_width">44dp</dimen>
+</resources>

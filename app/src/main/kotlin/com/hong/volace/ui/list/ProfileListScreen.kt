@@ -84,6 +84,8 @@ import com.hong.volace.widget.WidgetRefresher
 import com.hong.volace.widget.WidgetStyle
 import com.hong.volace.widget.requestPinWidget
 import kotlinx.coroutines.launch
+import androidx.compose.ui.res.stringResource
+import com.hong.volace.R
 
 private val BarHeight = 30.dp
 
@@ -143,7 +145,7 @@ fun ProfileListScreen(
             TopAppBar(
                 title = { Text("Volace", fontWeight = FontWeight.Bold) },
                 actions = {
-                    TextButton(onClick = { showBackup = true }) { Text("バックアップ") }
+                    TextButton(onClick = { showBackup = true }) { Text(stringResource(R.string.backup)) }
                     if (profiles.size > 1) {
                         TextButton(onClick = { reorderMode = !reorderMode }) {
                             Icon(
@@ -152,7 +154,7 @@ fun ProfileListScreen(
                                 modifier = Modifier.size(18.dp),
                             )
                             Spacer(Modifier.width(4.dp))
-                            Text(if (reorderMode) "完了" else "並べ替え")
+                            Text(stringResource(if (reorderMode) R.string.reorder_done else R.string.reorder))
                         }
                     }
                 },
@@ -165,19 +167,19 @@ fun ProfileListScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     // The app is mostly opened from a widget; this is the way back to it.
-                    BarAction(Icons.Filled.Home, "ホーム画面へ", Modifier.weight(1f)) {
+                    BarAction(Icons.Filled.Home, stringResource(R.string.bar_home), Modifier.weight(1f)) {
                         context.startActivity(
                             Intent(Intent.ACTION_MAIN)
                                 .addCategory(Intent.CATEGORY_HOME)
                                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
                         )
                     }
-                    BarAction(Icons.Filled.Widgets, "ウィジェット追加", Modifier.weight(1f)) {
+                    BarAction(Icons.Filled.Widgets, stringResource(R.string.bar_add_widget), Modifier.weight(1f)) {
                         showWidgetPicker = true
                     }
                     BarAction(
                         Icons.Filled.Add,
-                        "プロファイル追加",
+                        stringResource(R.string.bar_add_profile),
                         Modifier.weight(1f),
                         emphasized = true,
                         onClick = onAddProfile,
@@ -196,8 +198,7 @@ fun ProfileListScreen(
             }
             item {
                 Text(
-                    text = if (reorderMode) "↑↓ で並び順を変更（ウィジェットの表示順にもなります）"
-                    else "「適用」で切り替え・「編集」で内容を変更",
+                    text = stringResource(if (reorderMode) R.string.list_hint_reorder else R.string.list_hint),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 6.dp),
@@ -216,7 +217,7 @@ fun ProfileListScreen(
                             val outcome = ProfileSwitcher.apply(context, profile.id) ?: return@launch
                             WidgetRefresher.request(context)
                             snackbar.currentSnackbarData?.dismiss()
-                            snackbar.showSnackbar(outcome.result.message(outcome.profile.name))
+                            snackbar.showSnackbar(outcome.result.message(context, outcome.profile.name))
                         }
                     },
                     onEdit = { onEditProfile(profile.id) },
@@ -235,7 +236,7 @@ fun ProfileListScreen(
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
                         Text(
-                            "プロファイルがありません。",
+                            stringResource(R.string.list_empty),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -244,7 +245,7 @@ fun ProfileListScreen(
                         Button(onClick = onAddProfile) {
                             Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.width(6.dp))
-                            Text("今の音量でプロファイルを作成")
+                            Text(stringResource(R.string.list_create_from_current))
                         }
                     }
                 }
@@ -291,7 +292,7 @@ private fun AddWidgetDialog(onDismiss: () -> Unit) {
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("ホーム画面・クイック設定に追加") },
+        title = { Text(stringResource(R.string.add_dialog_title)) },
         text = {
             Column {
                 WidgetStyle.entries.forEach { style ->
@@ -308,7 +309,7 @@ private fun AddWidgetDialog(onDismiss: () -> Unit) {
                         Column(Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
                             Text(style.title, fontWeight = FontWeight.SemiBold)
                             Text(
-                                style.subtitle,
+                                stringResource(style.subtitle),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -328,9 +329,9 @@ private fun AddWidgetDialog(onDismiss: () -> Unit) {
                         },
                 ) {
                     Column(Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
-                        Text("クイック設定タイル", fontWeight = FontWeight.SemiBold)
+                        Text(stringResource(R.string.add_tile), fontWeight = FontWeight.SemiBold)
                         Text(
-                            "通知シェードを下ろして、どの画面からでも切り替え",
+                            stringResource(R.string.add_tile_desc),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -338,8 +339,7 @@ private fun AddWidgetDialog(onDismiss: () -> Unit) {
                 }
                 if (failed) {
                     Text(
-                        "このランチャーは自動追加に対応していません。ホーム画面の空きを長押し →" +
-                            "「ウィジェット」から Volace を探してください。",
+                        stringResource(R.string.add_widget_unsupported),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error,
                         modifier = Modifier.padding(top = 8.dp),
@@ -347,7 +347,7 @@ private fun AddWidgetDialog(onDismiss: () -> Unit) {
                 }
             }
         },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("閉じる") } },
+        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.close)) } },
     )
 }
 
@@ -422,7 +422,7 @@ private fun ProfileRow(
                         )
                         Spacer(Modifier.width(4.dp))
                         Text(
-                            text = ringerModeLabel(profile.ringerMode),
+                            text = stringResource(ringerModeLabel(profile.ringerMode)),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -441,18 +441,18 @@ private fun ProfileRow(
                     OutlinedButton(onClick = { onMove(-1) }, enabled = canMoveUp) {
                         Icon(Icons.Filled.KeyboardArrowUp, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(4.dp))
-                        Text("上へ")
+                        Text(stringResource(R.string.move_up))
                     }
                     OutlinedButton(onClick = { onMove(1) }, enabled = canMoveDown) {
                         Icon(Icons.Filled.KeyboardArrowDown, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(4.dp))
-                        Text("下へ")
+                        Text(stringResource(R.string.move_down))
                     }
                 } else {
                     OutlinedButton(onClick = onEdit) {
                         Icon(Icons.Filled.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(6.dp))
-                        Text("編集")
+                        Text(stringResource(R.string.edit))
                     }
                     FilledTonalButton(
                         onClick = onApply,
@@ -465,9 +465,9 @@ private fun ProfileRow(
                     ) {
                         Text(
                             when {
-                                active -> "適用中"
-                                drifted -> "再適用"
-                                else -> "適用"
+                                active -> stringResource(R.string.active)
+                                drifted -> stringResource(R.string.reapply)
+                                else -> stringResource(R.string.apply)
                             },
                             fontWeight = FontWeight.SemiBold,
                         )
@@ -482,7 +482,7 @@ private fun ProfileRow(
 private fun ActivePill(accent: Color, drifted: Boolean) {
     if (drifted) {
         Text(
-            "変更あり",
+            stringResource(R.string.changed),
             color = accent,
             fontSize = 10.sp,
             fontWeight = FontWeight.Bold,
@@ -507,7 +507,7 @@ private fun ActivePill(accent: Color, drifted: Boolean) {
             modifier = Modifier.size(11.dp),
         )
         Spacer(Modifier.width(2.dp))
-        Text("適用中", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.active), color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
     }
 }
 

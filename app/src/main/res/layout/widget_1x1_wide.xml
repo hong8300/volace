@@ -61,7 +61,7 @@
                 android:fontFamily="sans-serif-medium"
                 android:textColor="#FFFFFFFF"
                 android:textSize="12sp"
-                android:text="通常" />
+                android:text="@string/preview_profile_1" />
 
             <TextView
                 android:id="@+id/cycle_caption"
@@ -73,7 +73,7 @@
                 android:paddingTop="1dp"
                 android:textColor="#CCFFFFFF"
                 android:textSize="9sp"
-                android:text="タップで次へ" />
+                android:text="@string/widget_tap_next" />
         </LinearLayout>
     </FrameLayout>
 
@@ -95,19 +95,21 @@
             android:contentDescription="@null" />
 
         <TextView
+            android:id="@+id/pick_title"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:paddingTop="4dp"
             android:fontFamily="sans-serif-medium"
             android:textColor="#FFFFFFFF"
             android:textSize="12sp"
-            android:text="選ぶ" />
+            android:text="@string/widget_pick" />
 
         <TextView
+            android:id="@+id/pick_subtitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:textColor="#CCDCDCE6"
             android:textSize="9sp"
-            android:text="一覧から" />
+            android:text="@string/widget_pick_sub" />
     </LinearLayout>
 </LinearLayout>

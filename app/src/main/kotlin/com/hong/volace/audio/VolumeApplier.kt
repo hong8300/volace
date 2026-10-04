@@ -4,6 +4,7 @@ import android.app.NotificationManager
 import android.content.Context
 import android.media.AudioManager
 import android.util.Log
+import com.hong.volace.R
 import com.hong.volace.data.Profile
 
 private const val TAG = "VolumeApplier"
@@ -20,12 +21,14 @@ sealed interface ApplyResult {
 }
 
 /** One line for a toast or snackbar. */
-fun ApplyResult.message(profileName: String): String = when (this) {
-    ApplyResult.Applied -> "「$profileName」を適用しました"
-    ApplyResult.NeedsAccess ->
-        "「サイレント モードへのアクセス」が許可されていないため適用できません。Volace を開いて許可してください"
-    is ApplyResult.Partial ->
-        "「$profileName」の一部（${failed.joinToString("・")}）を変更できませんでした"
+fun ApplyResult.message(context: Context, profileName: String): String = when (this) {
+    ApplyResult.Applied -> context.getString(R.string.applied, profileName)
+    ApplyResult.NeedsAccess -> context.getString(R.string.apply_needs_access)
+    is ApplyResult.Partial -> context.getString(
+        R.string.apply_partial,
+        profileName,
+        failed.joinToString(context.getString(R.string.list_separator)),
+    )
 }
 
 class VolumeApplier(context: Context) {
@@ -79,13 +82,14 @@ class VolumeApplier(context: Context) {
 
         // Set the mode first so the ring/notification streams are unmuted and actually accept the
         // indices we are about to write.
-        attempt(RINGER_MODE) { audioManager.ringerMode = profile.ringerMode }
+        val ringerModeName = context.getString(R.string.ringer_mode)
+        attempt(ringerModeName) { audioManager.ringerMode = profile.ringerMode }
 
         // STREAM_SYSTEM is aliased to STREAM_RING on stock Android audio policy (confirmed via
         // dumpsys audio on Pixel 9 Pro XL / Android 17): whichever of the two is set last wins.
         // Apply SYSTEM first so the user-facing Ringer value is the one that actually sticks.
         APPLY_ORDER.filterNot { it.isKeptBy(profile) }.forEach { stream ->
-            attempt(stream.label) {
+            attempt(context.getString(stream.label)) {
                 audioManager.setStreamVolume(stream.streamType, stream.valueOf(profile), 0)
             }
         }
@@ -93,10 +97,10 @@ class VolumeApplier(context: Context) {
         // Writing 0 to STREAM_RING makes the system drop into VIBRATE on its own, which silently
         // overrides an explicit "silent" profile. Re-assert the mode so the profile has the last
         // word, then restore the ring/notification indices the mode change may have bumped.
-        attempt(RINGER_MODE) { audioManager.ringerMode = profile.ringerMode }
+        attempt(ringerModeName) { audioManager.ringerMode = profile.ringerMode }
         if (profile.ringerMode == AudioManager.RINGER_MODE_NORMAL) {
             listOf(VolumeStream.NOTIFICATION, VolumeStream.RINGER).filterNot { it.isKeptBy(profile) }.forEach { stream ->
-                attempt(stream.label) {
+                attempt(context.getString(stream.label)) {
                     audioManager.setStreamVolume(stream.streamType, stream.valueOf(profile), 0)
                 }
             }
@@ -115,7 +119,5 @@ class VolumeApplier(context: Context) {
             VolumeStream.VOICE_CALL,
             VolumeStream.RINGER,
         )
-
-        const val RINGER_MODE = "着信モード"
     }
 }
