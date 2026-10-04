@@ -20,7 +20,11 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - uses: android-actions/setup-android@v3
+      # The runner image already has an Android SDK (ANDROID_HOME) with licences accepted; add
+      # the API 37 platform the app compiles against. (android-actions/setup-android@v3 fails
+      # trying to install the long-gone "tools" package.)
+      - name: Android SDK platform 37
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-37.0" "build-tools;37.0.0" > /dev/null
 
       - uses: gradle/actions/setup-gradle@v4
 
