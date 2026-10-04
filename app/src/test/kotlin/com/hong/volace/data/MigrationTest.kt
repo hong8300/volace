@@ -129,6 +129,27 @@ class MigrationTest {
         }
     }
 
+    @Test
+    fun migrate5To6_keepsEveryProfileWithVolaceDndOff() {
+        helper.createDatabase(DB, 5).use { db ->
+            db.execSQL(
+                "INSERT INTO profiles (id, name, orderIndex, ringerMode, ringVolume, " +
+                    "notificationVolume, mediaVolume, alarmVolume, voiceCallVolume, systemVolume, " +
+                    "isActive, colorArgb, iconKey, keepMask, ringtoneUri) " +
+                    "VALUES (8, '夜', 3, 0, 0, 0, 2, 6, 11, 0, 1, 42, 'night', 0, 'content://x/1')",
+            )
+        }
+
+        helper.runMigrationsAndValidate(DB, 6, true, *VolaceDatabase.MIGRATIONS).use { db ->
+            db.query("SELECT name, ringtoneUri, dndMode FROM profiles WHERE id = 8").use { c ->
+                assertTrue(c.moveToFirst())
+                assertEquals("夜", c.getString(0))
+                assertEquals("content://x/1", c.getString(1))
+                assertEquals(0, c.getInt(2))
+            }
+        }
+    }
+
     /** What the app itself does on launch: every registered migration must get it to the latest. */
     @Test
     fun appBuilder_opensOldestSchemaWithoutLosingData() {
@@ -164,7 +185,7 @@ class MigrationTest {
                     "notificationVolume, mediaVolume, alarmVolume, voiceCallVolume, systemVolume, " +
                     "isActive, colorArgb, iconKey, keepMask) VALUES ('通常', 0, 2, 5, 5, 15, 6, 11, 5, 0, 0, 'bell', 0)",
             )
-            db.execSQL("PRAGMA user_version = 6") // as written by a future build
+            db.execSQL("PRAGMA user_version = 7") // as written by a future build
         }
 
         val db = VolaceDatabase.builder(context, DB).allowMainThreadQueries().build()

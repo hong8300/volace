@@ -1,5 +1,6 @@
 package com.hong.volace.data
 
+import com.hong.volace.audio.DndMode
 import android.content.Context
 import androidx.annotation.StringRes
 import com.hong.volace.R
@@ -44,7 +45,9 @@ object ProfileBackup {
                     .put(
                         "keep",
                         JSONArray(VolumeStream.entries.filter { it.isKeptBy(p) }.map { it.key }),
-                    ),
+                    )
+                    // Not the sounds: their URIs are this phone's (DESIGN.md 5.16).
+                    .put("dnd", DndMode.of(p.dndMode).key),
             )
         }
         return JSONObject()
@@ -92,6 +95,8 @@ object ProfileBackup {
                 // Unknown icons fall back to the default when drawn (ProfileIcon.fromKey).
                 iconKey = o.optString("icon", ProfileIcon.DEFAULT.key),
                 keepMask = keepMask(o.optJSONArray("keep")),
+                // Absent in older files; an unknown value is "使わない".
+                dndMode = DndMode.ofKey(o.optString("dnd")).value,
             )
         }
     }

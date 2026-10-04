@@ -52,9 +52,10 @@ Profile
   ringtoneUri: String?      // 標準の着信音・通知音・アラーム音(v5〜)。null = 変更しない、"" = なし(5.16)
   notificationSoundUri: String?
   alarmSoundUri: String?
+  dndMode: Int              // おやすみモード(v6〜)。0 = 使わない / 1 = 重要な通知のみ / 2 = アラームのみ(5.17)
 ```
 
-Room の schema version は **5**。v1 → v2 で `colorArgb` / `iconKey`、v2 → v3 で `keepMask`、v4 → v5 で音の 3 列を `ALTER TABLE ADD COLUMN` し、
+Room の schema version は **6**。v1 → v2 で `colorArgb` / `iconKey`、v2 → v3 で `keepMask`、v4 → v5 で音の 3 列、v5 → v6 で `dndMode` を `ALTER TABLE ADD COLUMN` し、
 v3 → v4 でスケジュールの表(5.15)を作るマイグレーションを持つ(v1〜v3 は実機で既存データを保持したまま移行できることを確認済み)。
 
 `keepMask`(issue #21)はストリームごとの「変更しない」。1ストリーム1ビット(`VolumeStream.keepBit`、DB に保存されるので番号を変えない)。
@@ -427,6 +428,35 @@ AudioService は音量を `Settings.System`(`volume_music_speaker` 等、出力�
 - **時間指定(5.14)**: 時間指定のプロファイルが変える種類だけ、開始前の音を `ProfileTimer.previousSounds` に持ち、「適用前の状態に戻す」で書き戻す
 - **バックアップ(5.11)**: 音の URI は端末ごとに違う(`content://media/internal/audio/media/<番号>`)ので JSON には含めない。読み込んだプロファイルは「変更しない」になる
 
+### 5.17 おやすみモード(issue #27)
+
+プロファイルごとに「おやすみモード」を選び、今の状態(何が鳴るか)を表示する(`audio/DndModes.kt`)。
+
+- **選択肢**(編集画面の「おやすみモード」): 使わない(既定。Volace のモードをオフ)/ 重要な通知のみ / アラームのみ
+- **Volace のモード**: `AutomaticZenRule` を 2 つ登録する(「Volace(重要な通知のみ)」「Volace(アラームのみ)」。システムの「モード」一覧に出る)。
+  1 つのルールのフィルタを書き換えないのは、ユーザーがモードの設定画面で変えた項目を Android がアプリの更新より優先するため。
+  どちらも「重要な通知のみ」の種類(`INTERRUPTION_FILTER_PRIORITY`)で、「アラームのみ」は `ZenPolicy` でアラームとメディアだけ許可する。
+  Android の「アラームのみ」フィルタは着信モードを内部でサイレントにし、ほかのモードと重なると終了後に戻らないことがあったため(8.9)。
+  ルール ID は `volace_device.xml` に持ち、ユーザーがモードを削除していたら作り直す。どのプロファイルも使わなくなったモードは消す
+  (アプリ起動時と編集画面から戻ったとき。`removeUnused`)
+- **適用の順序**(`VolumeApplier.apply`): ① Volace のモードをオフ ② 着信モードと音量 ③ プロファイルのモードをオン。
+  オフにしてからオンにするので、ユーザーがシステムの「モード」から一時停止していても切り替わる。
+  `Condition` の source は、手動の切り替えが `SOURCE_USER_ACTION`、スケジュール・時間指定の終了が `SOURCE_SCHEDULE`
+- **ほかのモードを止めない**: アプリが着信モードを「着信音」「バイブ」にすると、Android はおやすみモードをオフにし、
+  そのとき**ほかのモード(おやすみ時間・車内・運転中・手動のおやすみモード)もまとめて一時停止する**(8.9)。そこで ① の後もおやすみモードが
+  オンなら、それが Volace の「サイレント」が入れたもの(`dnd_silent_by_volace`)でない限り、着信モードと、着信モードに連動する音量
+  (着信音・システム。書くと着信モードが変わりうる)は書かない。ほかの音量は書く。ほかのモードが終われば Android が着信モードを戻す
+- **「サイレント」との関係**: 着信モードを「サイレント」にすると Android がおやすみモード(重要な通知のみ)を自動でオンにする(8.3)。
+  それまでおやすみモードがオフだったら Volace が入れたものとして覚え、次に「着信音」「バイブ」のプロファイルを適用したときに(これまでどおり)解除する
+- **「変更あり」の判定**: Volace のモードがプロファイルどおりかを比べる。おやすみモード中は着信モードがサイレントと読め、着信音・通知も
+  ミュートで 0 と読めるので、それらはおやすみモードがオフのときだけ比べる
+- **表示**: 現在の音量カードに「おやすみモード: 重要な通知のみ・アラームは鳴る」(ほかのモードなら「(ほかのモード)」)。
+  アラームが鳴るかは `consolidatedNotificationPolicy` で判断する。4×2 ウィジェットの状態行に「おやすみ(アラーム可)」、4×1 に「おやすみ」。
+  カードは `ACTION_INTERRUPTION_FILTER_CHANGED` で、ウィジェットは `zen_mode` の content-trigger(`VolumeWatchJob`)で更新する
+- **時間指定**: 開始前の Volace のモードも記録し、「適用前の状態に戻す」で戻す
+- **バックアップ**: `"dnd": "off" | "priority" | "alarms"`(古いファイルは「使わない」)
+- 権限は追加なし(`ACCESS_NOTIFICATION_POLICY` で足りる)
+
 ## 6. パーミッション
 
 ```xml
@@ -710,6 +740,26 @@ Android 17 のソース(`android17-release` の `services/core/java/com/android/
 | 「許可する」→ スイッチをオン → 戻る | 案内が消えた(最初はマニフェストに `WRITE_SETTINGS` が無く、スイッチが灰色で押せなかった) |
 | 適用 | 着信音 Copycat・通知音 Duet に変わり、アラーム音(変更しない)はそのまま |
 | 1 分の時間指定 → 終了 | 開始前の音(Your New Adventure・Eureka)に戻った |
+
+### 8.9 おやすみモードとほかのモード(Pixel 9a / Android 17、2026-10-04、issue #27)
+
+Android 17 の `ZenModeHelper.RingerModeDelegate.onSetRingerModeExternal` は、アプリが着信モードを「着信音」「バイブ」にしたとき、
+おやすみモードがオンなら `setManualZenMode(OFF, ORIGIN_SYSTEM)` を呼ぶ。その中で、ユーザー操作でない(`ORIGIN_USER_IN_SYSTEMUI` でない)ときは
+**有効な自動ルールをすべて `OVERRIDE_DEACTIVATE`(一時停止)にする**。
+
+| 手順 | 結果 |
+|---|---|
+| 変更前の Volace で、「車内」モードをオンにしてから「マナー」を再適用 | 「車内」が `OVERRIDE_DEACTIVATE` になり、おやすみモードがオフになった(ほかのモードを止めていた) |
+| 変更後、「車内」オンのまま「マナー」「通常」を適用 | 「車内」はオンのまま。着信モードは変わらず、メディアなどの音量だけ変わった。カードは「(ほかのモード)」、マナーは「適用中」 |
+| 「車内」オンのまま「アラームのみ」のプロファイルを適用 | 「Volace(アラームのみ)」が登録されてオン、「車内」もオン |
+| 続けて「使わない」のプロファイル | Volace のモードだけオフ。「車内」はオンのまま |
+| 手動のおやすみモード(`cmd notification set_dnd priority`)中に「通常」 | おやすみモードはオンのまま |
+| 「サイレント」→「マナー」 | 「サイレント」で入ったおやすみモードが解除された(これまでどおり) |
+| 「アラームのみ」のプロファイルを削除 | 「Volace(アラームのみ)」がシステムのモード一覧から消えた |
+
+- 最初の版は「アラームのみ」を `INTERRUPTION_FILTER_ALARMS` で作った。Android はこのフィルタで着信モードを内部でサイレントにし
+  (`applyZenToRingerMode`)、「車内」と重ねて順に終えると着信モードがサイレントのまま残った。「重要な通知のみ」型 + `ZenPolicy` に変えた
+- 「車内」モードは、設定画面からオンにすると設定アプリ自身が着信モードを内部でサイレントにし、オフで戻す(ZenLog の `com.android.settings`)。Volace の動作とは別
 
 ### 未検証(今後)
 - Pixel 11 Pro でのプロファイル適用とウィジェット配置(端末ロックのため未実施。

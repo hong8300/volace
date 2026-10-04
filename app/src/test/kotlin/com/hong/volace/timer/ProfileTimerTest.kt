@@ -2,6 +2,7 @@ package com.hong.volace.timer
 
 import android.media.AudioManager
 import com.hong.volace.audio.DeviceVolumes
+import com.hong.volace.audio.DndMode
 import com.hong.volace.audio.SoundKind
 import com.hong.volace.audio.VolumeStream
 import com.hong.volace.audio.isKeptBy
@@ -52,6 +53,14 @@ class ProfileTimerTest {
             previousSounds = mapOf(SoundKind.RINGTONE to "content://media/internal/audio/media/42", SoundKind.ALARM to SoundKind.SILENT),
         )
         assertEquals(withSounds, ProfileTimer.fromJson(withSounds.toJson()))
+    }
+
+    @Test
+    fun json_keepsVolaceDndFromBefore_andRestoresIt() {
+        val withDnd = timer.copy(previous = timer.previous.copy(volaceDnd = DndMode.ALARMS.value))
+        val back = ProfileTimer.fromJson(withDnd.toJson())!!
+        assertEquals(DndMode.ALARMS.value, back.previous.volaceDnd)
+        assertEquals(DndMode.ALARMS.value, back.previousProfile("前").dndMode)
     }
 
     @Test

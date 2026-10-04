@@ -78,4 +78,30 @@ class ProfileMatchesTest {
         assertTrue(profileMatches(keepMedia, device(RINGER_MODE_NORMAL, 4, 4, 3, 6, 11, 4), ranges))
         assertFalse(profileMatches(keepMedia, device(RINGER_MODE_NORMAL, 4, 4, 3, 2, 11, 4), ranges))
     }
+
+    private val applied = device(RINGER_MODE_NORMAL, 4, 4, 25, 6, 11, 4)
+
+    @Test
+    fun dnd_volaceModeMustBeTheProfiles() {
+        val priority = music.copy(dndMode = DndMode.PRIORITY.value)
+        assertTrue(profileMatches(priority, applied.copy(dndActive = true, volaceDnd = DndMode.PRIORITY.value), ranges))
+        // Turned off from the system's Modes, or another of Volace's modes on instead.
+        assertFalse(profileMatches(priority, applied, ranges))
+        assertFalse(profileMatches(priority, applied.copy(dndActive = true, volaceDnd = DndMode.ALARMS.value), ranges))
+        assertFalse(profileMatches(music, applied.copy(dndActive = true, volaceDnd = DndMode.PRIORITY.value), ranges))
+    }
+
+    @Test
+    fun dnd_anotherModeHidesTheRingerAndItsStreams() {
+        // Bedtime on: the ringer reads silent and the ringer streams muted; Volace left them alone.
+        val underBedtime = device(RINGER_MODE_SILENT, 0, 0, 25, 6, 11, 0).copy(dndActive = true)
+        assertTrue(profileMatches(music, underBedtime, ranges))
+        // What Volace does write is still compared.
+        assertFalse(profileMatches(music, underBedtime.copy(levels = underBedtime.levels + (VolumeStream.MEDIA to 3)), ranges))
+    }
+
+    @Test
+    fun dnd_off_theRingerCountsAgain() {
+        assertFalse(profileMatches(music, applied.copy(ringerMode = RINGER_MODE_VIBRATE), ranges))
+    }
 }

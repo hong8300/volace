@@ -1,5 +1,7 @@
 package com.hong.volace.data
 
+import org.json.JSONObject
+import com.hong.volace.audio.DndMode
 import com.hong.volace.audio.VolumeStream
 import com.hong.volace.R
 import androidx.test.core.app.ApplicationProvider
@@ -41,6 +43,18 @@ class ProfileBackupTest {
         assertEquals(9, meeting.voiceCallVolume)
         assertEquals(0xFF7E57C2.toInt(), meeting.colorArgb)
         assertEquals("work", meeting.iconKey)
+    }
+
+    @Test
+    fun dnd_roundTrips_soundsStayBehind_andOlderFilesUseNone() {
+        val p = profiles[0].copy(dndMode = DndMode.ALARMS.value, ringtoneUri = "content://media/internal/audio/media/13")
+        val back = ProfileBackup.fromJson(ProfileBackup.toJson(listOf(p))).single()
+        assertEquals(DndMode.ALARMS.value, back.dndMode)
+        assertEquals(null, back.ringtoneUri)
+        val older = JSONObject(ProfileBackup.toJson(listOf(p))).apply {
+            getJSONArray("profiles").getJSONObject(0).remove("dnd")
+        }.toString()
+        assertEquals(DndMode.OFF.value, ProfileBackup.fromJson(older).single().dndMode)
     }
 
     @Test

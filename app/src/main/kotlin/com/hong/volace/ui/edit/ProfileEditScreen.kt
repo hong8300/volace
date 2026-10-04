@@ -1,5 +1,8 @@
 package com.hong.volace.ui.edit
 
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.material3.RadioButton
+import com.hong.volace.audio.DndMode
 import android.app.Activity
 import android.media.RingtoneManager
 import android.net.Uri
@@ -421,6 +424,9 @@ fun ProfileEditScreen(
                 modifier = Modifier.padding(top = 8.dp),
             )
 
+            SectionTitle(stringResource(R.string.dnd_title))
+            DndSection(current, onChange = { profile = it })
+
             SectionTitle(stringResource(R.string.section_volume))
             FilledTonalButton(
                 onClick = {
@@ -724,6 +730,7 @@ private val ProfileSaver = listSaver<Profile?, Any>(
             p.mediaVolume, p.alarmVolume, p.voiceCallVolume, p.systemVolume, p.isActive,
             p.colorArgb, p.iconKey, p.keepMask,
             p.ringtoneUri ?: NO_SOUND, p.notificationSoundUri ?: NO_SOUND, p.alarmSoundUri ?: NO_SOUND,
+            p.dndMode,
         )
     },
     restore = { v ->
@@ -745,9 +752,53 @@ private val ProfileSaver = listSaver<Profile?, Any>(
             ringtoneUri = (v[14] as String).takeIf { it != NO_SOUND },
             notificationSoundUri = (v[15] as String).takeIf { it != NO_SOUND },
             alarmSoundUri = (v[16] as String).takeIf { it != NO_SOUND },
+            dndMode = v[17] as Int,
         )
     },
 )
+
+/**
+ * "おやすみモード": Volace's own mode for this profile, or none. Other modes are never turned
+ * off by Volace, which the last line says (the ringer then stays as that mode has it).
+ */
+@Composable
+private fun DndSection(profile: Profile, onChange: (Profile) -> Unit) {
+    Column(modifier = Modifier.selectableGroup()) {
+        DndMode.entries.forEach { mode ->
+            val selected = profile.dndMode == mode.value
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 56.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .selectable(selected = selected, role = Role.RadioButton) { onChange(profile.copy(dndMode = mode.value)) }
+                    .padding(vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                RadioButton(selected = selected, onClick = null)
+                Spacer(Modifier.width(8.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(stringResource(mode.label), style = MaterialTheme.typography.bodyLarge)
+                    Text(
+                        stringResource(mode.description),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
+    }
+    val hints = listOfNotNull(
+        stringResource(R.string.dnd_hint_silent).takeIf { profile.ringerMode == AudioManager.RINGER_MODE_SILENT },
+        stringResource(R.string.dnd_hint_others),
+    )
+    Text(
+        hints.joinToString("\n"),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(top = 4.dp),
+    )
+}
 
 /** A null sound ("変更しない") in [ProfileSaver], which cannot hold nulls; "" is taken by "なし". */
 private const val NO_SOUND = "\u0000"

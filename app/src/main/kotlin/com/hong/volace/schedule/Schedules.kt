@@ -16,6 +16,7 @@ import com.hong.volace.MainActivity
 import com.hong.volace.R
 import com.hong.volace.audio.ApplyResult
 import com.hong.volace.audio.ProfileSwitcher
+import com.hong.volace.audio.SwitchSource
 import com.hong.volace.audio.VolumeApplier
 import com.hong.volace.data.ScheduleRule
 import com.hong.volace.data.ScheduleSkip
@@ -124,7 +125,7 @@ object Schedules {
             }
 
             val applier = VolumeApplier(app)
-            val result = applier.apply(profile)
+            val result = applier.apply(profile, SwitchSource.SCHEDULE)
             // Android 17 ignores a change it does not allow without saying so: read it back.
             val stuck = result == ApplyResult.Applied && applier.matches(profile, applier.snapshot())
             if (stuck) {

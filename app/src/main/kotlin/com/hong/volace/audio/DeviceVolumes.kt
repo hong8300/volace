@@ -11,6 +11,13 @@ import com.hong.volace.R
 data class DeviceVolumes(
     val ringerMode: Int,
     val levels: Map<VolumeStream, Int>,
+    /**
+     * "Do Not Disturb" is on (any mode). Android then reports the ringer as silent and may mute
+     * the ringer and notification streams, whatever the ringer is underneath.
+     */
+    val dndActive: Boolean = false,
+    /** Which of Volace's own DND modes is on ([DndMode.value]). */
+    val volaceDnd: Int = DndMode.OFF.value,
 ) {
     fun levelOf(stream: VolumeStream): Int = levels[stream] ?: 0
 }
