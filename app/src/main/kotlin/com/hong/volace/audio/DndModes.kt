@@ -51,7 +51,13 @@ enum class DndMode(
 }
 
 /** Who asked for a switch, for Android's own bookkeeping of the modes ([Condition.source]). */
-enum class SwitchSource { USER, SCHEDULE }
+enum class SwitchSource {
+    USER,
+    SCHEDULE,
+
+    /** A Bluetooth device connected or disconnected. */
+    CONTEXT,
+}
 
 /** "Do Not Disturb" as it is now, for the screens. */
 data class DndState(
@@ -217,7 +223,11 @@ class DndModes(context: Context) {
             return Condition(conditionId(mode), summary, state)
         }
         // A tap is the user's choice; a schedule or a timer's end is Volace's own doing.
-        val origin = if (source == SwitchSource.USER) Condition.SOURCE_USER_ACTION else Condition.SOURCE_SCHEDULE
+        val origin = when (source) {
+            SwitchSource.USER -> Condition.SOURCE_USER_ACTION
+            SwitchSource.SCHEDULE -> Condition.SOURCE_SCHEDULE
+            SwitchSource.CONTEXT -> Condition.SOURCE_CONTEXT
+        }
         return Condition(conditionId(mode), summary, state, origin)
     }
 

@@ -7,10 +7,15 @@ import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
-@Database(entities = [Profile::class, ScheduleRule::class, ScheduleSkip::class], version = 6, exportSchema = true)
+@Database(
+    entities = [Profile::class, ScheduleRule::class, ScheduleSkip::class, BluetoothRule::class],
+    version = 7,
+    exportSchema = true,
+)
 abstract class VolaceDatabase : RoomDatabase() {
     abstract fun profileDao(): ProfileDao
     abstract fun scheduleDao(): ScheduleDao
+    abstract fun bluetoothRuleDao(): BluetoothRuleDao
 
     companion object {
         /** v1 -> v2: per-profile accent colour and icon. */
@@ -65,11 +70,23 @@ abstract class VolaceDatabase : RoomDatabase() {
             }
         }
 
+        /** v6 -> v7: switching on Bluetooth devices. */
+        internal val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `bluetooth_rules` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "`address` TEXT NOT NULL, `name` TEXT NOT NULL, `profileId` INTEGER NOT NULL, " +
+                        "`onDisconnect` INTEGER NOT NULL, `disconnectProfileId` INTEGER, `enabled` INTEGER NOT NULL)",
+                )
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_bluetooth_rules_address` ON `bluetooth_rules` (`address`)")
+            }
+        }
+
         /**
          * Every migration, oldest first. When bumping the version: add the migration here, commit
          * the new schema JSON under app/schemas, and add a case to MigrationTest.
          */
-        internal val MIGRATIONS = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+        internal val MIGRATIONS = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
 
         internal const val NAME = "volace.db"
 

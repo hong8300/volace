@@ -16,6 +16,7 @@ import com.hong.volace.audio.valueOf
 import com.hong.volace.audio.VolumeApplier
 import com.hong.volace.data.Profile
 import com.hong.volace.data.ProfileDao
+import com.hong.volace.bluetooth.BluetoothSwitch
 import com.hong.volace.schedule.Schedules
 import kotlinx.coroutines.flow.Flow
 
@@ -78,6 +79,7 @@ object ProfileTimers {
                 TimerNotifications.cancelDue(app)
                 TimerService.start(app)
                 Schedules.noteManualChoice(app, target.id)
+                BluetoothSwitch.noteManualChoice(app, target.id)
             }
             ProfileSwitcher.Outcome(target, result)
         }

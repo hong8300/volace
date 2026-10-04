@@ -1,5 +1,6 @@
 package com.hong.volace
 
+import com.hong.volace.ui.bluetooth.BluetoothScreen
 import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
@@ -34,6 +35,7 @@ sealed interface Screen {
     data object ProfileList : Screen
     data class ProfileEdit(val profileId: Long?) : Screen
     data object Schedule : Screen
+    data object Bluetooth : Screen
 }
 
 /** Keeps the open screen across rotation and process death. Ids are never negative. */
@@ -43,6 +45,7 @@ private val ScreenSaver = Saver<Screen, Long>(
             Screen.ProfileList -> -1L
             is Screen.ProfileEdit -> screen.profileId ?: -2L
             Screen.Schedule -> -3L
+            Screen.Bluetooth -> -4L
         }
     },
     restore = { saved ->
@@ -50,6 +53,7 @@ private val ScreenSaver = Saver<Screen, Long>(
             -1L -> Screen.ProfileList
             -2L -> Screen.ProfileEdit(null)
             -3L -> Screen.Schedule
+            -4L -> Screen.Bluetooth
             else -> Screen.ProfileEdit(saved)
         }
     },
@@ -98,6 +102,8 @@ class MainActivity : ComponentActivity() {
                                 onAddProfile = { screen = Screen.ProfileEdit(null) },
                                 scheduleDao = db.scheduleDao(),
                                 onOpenSchedule = { screen = Screen.Schedule },
+                                bluetoothDao = db.bluetoothRuleDao(),
+                                onOpenBluetooth = { screen = Screen.Bluetooth },
                                 message = message,
                                 onMessageShown = { message = null },
                             )
@@ -115,6 +121,11 @@ class MainActivity : ComponentActivity() {
                             Screen.Schedule -> ScheduleScreen(
                                 profileDao = db.profileDao(),
                                 scheduleDao = db.scheduleDao(),
+                                onBack = { screen = Screen.ProfileList },
+                            )
+                            Screen.Bluetooth -> BluetoothScreen(
+                                profileDao = db.profileDao(),
+                                ruleDao = db.bluetoothRuleDao(),
                                 onBack = { screen = Screen.ProfileList },
                             )
                         }

@@ -1,5 +1,8 @@
 package com.hong.volace.ui.list
 
+import com.hong.volace.bluetooth.BluetoothSwitch
+import com.hong.volace.data.BluetoothRuleDao
+import com.hong.volace.ui.bluetooth.BluetoothSummaryCard
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.material.icons.filled.Timer
@@ -116,6 +119,8 @@ fun ProfileListScreen(
     onAddProfile: () -> Unit,
     scheduleDao: ScheduleDao,
     onOpenSchedule: () -> Unit,
+    bluetoothDao: BluetoothRuleDao,
+    onOpenBluetooth: () -> Unit,
     /** Left by the edit screen ("保存しました" etc.); shown once, then [onMessageShown]. */
     message: String? = null,
     onMessageShown: () -> Unit = {},
@@ -154,6 +159,8 @@ fun ProfileListScreen(
     val rules by remember(scheduleDao) { scheduleDao.observeRules() }.collectAsState(initial = emptyList())
     val skips by remember(scheduleDao) { scheduleDao.observeSkips() }.collectAsState(initial = emptyList())
     val scheduleStatus by remember(context) { Schedules.observeStatus(context) }.collectAsState(initial = null)
+    val bluetoothRules by remember(bluetoothDao) { bluetoothDao.observeAll() }.collectAsState(initial = emptyList())
+    val bluetoothStatus by remember(context) { BluetoothSwitch.observeStatus(context) }.collectAsState(initial = null)
 
     // The profile whose "時間指定" dialog is open.
     var timedId by rememberSaveable { mutableStateOf<Long?>(null) }
@@ -285,6 +292,9 @@ fun ProfileListScreen(
             }
             item(key = "schedule") {
                 ScheduleSummaryCard(rules, skips, profiles, scheduleStatus, onClick = onOpenSchedule)
+            }
+            item(key = "bluetooth") {
+                BluetoothSummaryCard(bluetoothRules, profiles, bluetoothStatus, onClick = onOpenBluetooth)
             }
             item {
                 Text(
