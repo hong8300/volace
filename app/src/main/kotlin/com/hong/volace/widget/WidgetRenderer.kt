@@ -323,10 +323,9 @@ object WidgetRenderer {
         )
     }
 
-    /** Opens the app on its profile list, the same screen as the launcher icon. */
+    /** Opens the app exactly like its launcher icon does. */
     private fun openAppPendingIntent(context: Context): PendingIntent {
-        val intent = Intent(context, MainActivity::class.java)
-            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+        val intent = MainActivity.launcherIntent(context)
         return PendingIntent.getActivity(
             context,
             REQUEST_OPEN_APP,

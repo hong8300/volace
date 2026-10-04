@@ -58,6 +58,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.listSaver
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -96,11 +98,12 @@ fun ProfileEditScreen(
 ) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
-    var profile by remember { mutableStateOf<Profile?>(null) }
+    // Saveable: rotation, a theme switch or the process being reclaimed must not drop the edit.
+    var profile by rememberSaveable(stateSaver = ProfileSaver) { mutableStateOf<Profile?>(null) }
     /** As loaded (or as first generated, for a new profile), to tell whether anything changed. */
-    var original by remember { mutableStateOf<Profile?>(null) }
-    var showDeleteConfirm by remember { mutableStateOf(false) }
-    var showDiscardConfirm by remember { mutableStateOf(false) }
+    var original by rememberSaveable(stateSaver = ProfileSaver) { mutableStateOf<Profile?>(null) }
+    var showDeleteConfirm by rememberSaveable { mutableStateOf(false) }
+    var showDiscardConfirm by rememberSaveable { mutableStateOf(false) }
     // A second tap while the first save is still writing would insert the new profile twice.
     var saving by remember { mutableStateOf(false) }
 
@@ -118,6 +121,7 @@ fun ProfileEditScreen(
     }.collectAsState(initial = false)
 
     LaunchedEffect(profileId) {
+        if (profile != null) return@LaunchedEffect // restored draft: keep it, don't reload
         val loaded = profileId?.let { dao.getById(it) } ?: run {
             val index = dao.nextOrderIndex()
             Profile(
@@ -532,3 +536,31 @@ private fun RingerModeButton(
         }
     }
 }
+
+/** Puts an unsaved [Profile] into saved instance state (it is not Parcelable). */
+private val ProfileSaver = listSaver<Profile?, Any>(
+    save = { p ->
+        if (p == null) emptyList() else listOf(
+            p.id, p.name, p.orderIndex, p.ringerMode, p.ringVolume, p.notificationVolume,
+            p.mediaVolume, p.alarmVolume, p.voiceCallVolume, p.systemVolume, p.isActive,
+            p.colorArgb, p.iconKey,
+        )
+    },
+    restore = { v ->
+        if (v.isEmpty()) null else Profile(
+            id = v[0] as Long,
+            name = v[1] as String,
+            orderIndex = v[2] as Int,
+            ringerMode = v[3] as Int,
+            ringVolume = v[4] as Int,
+            notificationVolume = v[5] as Int,
+            mediaVolume = v[6] as Int,
+            alarmVolume = v[7] as Int,
+            voiceCallVolume = v[8] as Int,
+            systemVolume = v[9] as Int,
+            isActive = v[10] as Boolean,
+            colorArgb = v[11] as Int,
+            iconKey = v[12] as String,
+        )
+    },
+)

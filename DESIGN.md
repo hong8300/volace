@@ -195,8 +195,10 @@ Profile に **accent color (`colorArgb`)** と **アイコン (`iconKey`)** を�
 
 - 入口は文字で示す(issue #10。アイコンだけでは伝わらなかった): 4×2 は見出しに「現在の音量」と「アプリを開く ›」、
   4×1 はタイルの下に「音量詳細」。ずれているときは「変更あり」、アクセス許可が無いときは「要許可」に変わる(色付き)
-- 「アプリを開く」は `MainActivity` を `NEW_TASK | CLEAR_TOP` で起動するので、アプリが編集画面のまま
-  裏にいても、必ずアプリアイコンと同じプロファイル一覧から始まる
+- 「アプリを開く」は**アプリアイコンと同じ動作**(前回の画面に戻る。初回は一覧)。`MainActivity` は `singleTask` で、
+  ランチャーと同じ Intent(`MainActivity.launcherIntent`)で開く。以前は `CLEAR_TOP` で必ず一覧から作り直していたため、
+  編集の途中でホームに戻ってウィジェットから開くと、未保存の内容が黙って消えていた(issue #12)
+- 編集中の内容と開いている画面は `rememberSaveable` で保持するので、回転・テーマ切替・プロセスの再生成でも消えない
 - バーは `ClipDrawable` を `src` にした `ImageView` に `setImageLevel(0..10000)` で長さを、
   `setColorFilter` で色(適用中プロファイルの色)を指定している。`ProgressBar` の色付けより素直
 - 4×2 は `RemoteViews(Map<SizeF, RemoteViews>)` で高さ 180dp 未満なら音量表示を外した版を出す
