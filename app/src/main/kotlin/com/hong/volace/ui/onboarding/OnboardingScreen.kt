@@ -29,12 +29,15 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.hong.volace.R
 import androidx.compose.ui.res.stringResource
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 
 @Composable
 fun OnboardingScreen() {
     val context = LocalContext.current
     Column(
-        modifier = Modifier.fillMaxSize().padding(28.dp),
+        // Scrolls: at large font sizes the text and button do not fit on one screen.
+        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(28.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {

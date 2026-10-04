@@ -147,8 +147,6 @@
     <string name="capture">Use the current ringer mode and volumes</string>
     <string name="keep_value">Unchanged</string>
     <string name="keep_switch">Leave this volume unchanged</string>
-    <string name="volume_down">Lower</string>
-    <string name="volume_up">Raise</string>
     <string name="hint_normal">Calls and notifications ring at the volumes below.</string>
     <string name="hint_vibrate">Calls and notifications vibrate instead of ringing. Media, alarms and calls still play at the volumes below.</string>
     <string name="hint_silent">Calls and notifications neither ring nor vibrate. Media, alarms and calls still play at the volumes below. Android also turns on Do Not Disturb and shows vibrate in the status bar (switched back off when you return to “Ring”).</string>
@@ -202,4 +200,18 @@
     <string name="widget_label_1x1">1×1 Tap to switch</string>
     <string name="widget_label_1x4">4×1 Pick to switch</string>
     <string name="widget_label_2x4">4×2 With volume</string>
+    <!-- Accessibility -->
+    <string name="color_blue">Blue</string>
+    <string name="color_teal">Teal</string>
+    <string name="color_green">Green</string>
+    <string name="color_amber">Amber</string>
+    <string name="color_deep_orange">Orange</string>
+    <string name="color_red">Red</string>
+    <string name="color_pink">Pink</string>
+    <string name="color_purple">Purple</string>
+    <string name="color_indigo">Indigo</string>
+    <string name="color_blue_grey">Blue grey</string>
+    <string name="a11y_lower">Lower %1$s</string>
+    <string name="a11y_raise">Raise %1$s</string>
+    <string name="a11y_level">%1$d of %2$d</string>
 </resources>

@@ -1,5 +1,6 @@
 package com.hong.volace.tile
 
+import android.annotation.SuppressLint
 import android.app.PendingIntent
 import android.app.StatusBarManager
 import android.content.ComponentName
@@ -70,8 +71,9 @@ class ProfileTileService : TileService() {
                 PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_IMMUTABLE),
             )
         } else {
-            // API 33 only has the Intent overload (it throws from API 34 on).
+            // API 33 only has the Intent overload (it throws from API 34 on, which the branch above covers).
             @Suppress("DEPRECATION")
+            @SuppressLint("StartActivityAndCollapseDeprecated")
             startActivityAndCollapse(intent)
         }
     }

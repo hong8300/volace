@@ -45,6 +45,7 @@ import com.hong.volace.data.Profile
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
 import com.hong.volace.R
+import androidx.compose.ui.platform.LocalDensity
 
 /** Hidden AudioManager broadcasts; stable for years and the only push signal for volume. */
 private const val ACTION_VOLUME_CHANGED = "android.media.VOLUME_CHANGED_ACTION"
@@ -135,7 +136,9 @@ fun CurrentVolumeCard(
                 )
             }
             Spacer(Modifier.height(6.dp))
-            VolumeStream.entries.chunked(2).forEach { pair ->
+            // One column once the text is enlarged; two columns of long names would not fit.
+            val columns = if (LocalDensity.current.fontScale >= 1.3f) 1 else 2
+            VolumeStream.entries.chunked(columns).forEach { pair ->
                 Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     pair.forEach { stream ->
                         LevelBar(
@@ -162,7 +165,8 @@ private fun LevelBar(label: String, value: Int, max: Int, accent: Color, modifie
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
-            modifier = Modifier.width(dimensionResource(R.dimen.level_label_width)),
+            // Grows with the font size, or enlarged names get cut ("メディ…").
+            modifier = Modifier.width(dimensionResource(R.dimen.level_label_width) * LocalDensity.current.fontScale.coerceAtLeast(1f)),
         )
         Box(
             modifier = Modifier
