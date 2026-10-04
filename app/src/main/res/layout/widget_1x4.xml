@@ -496,5 +496,16 @@
                     android:text="S" />
             </LinearLayout>
         </LinearLayout>
+
+        <TextView
+            android:id="@+id/status_caption"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingTop="3dp"
+            android:maxLines="1"
+            android:fontFamily="sans-serif-medium"
+            android:textColor="#FFDCDCE6"
+            android:textSize="10sp"
+            android:text="音量詳細" />
     </LinearLayout>
 </LinearLayout>

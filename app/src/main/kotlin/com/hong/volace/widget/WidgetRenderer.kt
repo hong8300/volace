@@ -227,6 +227,21 @@ object WidgetRenderer {
                 R.id.status_mode_text,
                 listOfNotNull(ringerModeLabel(mode), drift).joinToString("・"),
             )
+            views.setTextColor(R.id.status_open, barColor)
+        } else {
+            // No room for sentences in a 4×1 tile: one word for what it is, or what is wrong.
+            views.setTextViewText(
+                R.id.status_caption,
+                when {
+                    !state.hasAccess -> "要許可"
+                    state.drifted -> "変更あり"
+                    else -> "音量詳細"
+                },
+            )
+            views.setTextColor(
+                R.id.status_caption,
+                if (state.drifted || !state.hasAccess) barColor else IDLE_TEXT,
+            )
         }
 
         views.setOnClickPendingIntent(R.id.status_panel, openAppPendingIntent(context))
