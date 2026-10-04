@@ -51,7 +51,19 @@ Profile
 
 Room の schema version は **2**。v1 → v2 で `colorArgb` / `iconKey` を `ALTER TABLE ADD COLUMN` する
 マイグレーションを持つ(実機で既存データを保持したまま移行できることを確認済み)。
-想定外のスキーマ差分でクラッシュしないよう `fallbackToDestructiveMigration(dropAllTables = true)` も併用。
+
+**スキーマ変更のルール(issue #8)**
+- `fallbackToDestructiveMigration` は**使わない**。以前は併用していたが、マイグレーションを書き忘れたとき
+  (や古い APK を新しい DB の上に入れたとき)に全プロファイルが黙って消え、`MainActivity` が既定の4件で
+  埋め直すため、消えたことにも気づけなかった。今は開けずにクラッシュする(データは残る)
+- スキーマは `app/schemas/` に出力してコミットする(`exportSchema = true`、KSP の `room.schemaLocation`)。
+  `1.json` は当時出力していなかったので、`2.json` から v2 で追加した2列を除いて復元したもの
+- version を上げるときは、`VolaceDatabase.MIGRATIONS` に追加 → 新しい JSON をコミット → `MigrationTest` に追加
+- `MigrationTest` は Robolectric(JVM)で動く。Robolectric は API 35 以降に Java 21 が要り、ビルドは JDK 17 なので
+  SDK 34 で動かす(`app/src/test/resources/robolectric.properties`)。Robolectric はアプリ本体のアセットしか読まないため、
+  スキーマは debug ビルドのアセットに含めている(リリースには入らない)
+- 実機の instrumentation テスト(`connectedAndroidTest`)は終了時にアプリをアンインストールし、データとウィジェットが消えるので、
+  普段使いの端末では実行しない
 
 初回起動時(`count() == 0`)に `DefaultProfiles` が「通常 / マナー / サイレント / 音楽」の4件を生成する。
 値は端末ごとの `getStreamMaxVolume()` に対する比率で決めるため、機種差を吸収できる。
@@ -437,6 +449,9 @@ adb shell cmd notification allow_dnd com.hong.volace   # DNDアクセスをadb�
 ```
 
 - Gradle 9.5.0 / AGP 9.3.1 / KSP 2.3.11 / compileSdk 37 の組み合わせで固定している(相性が厳しいので不用意に上げない)
+- `versionCode` は端末に入れるビルドごとに上げる。adb は古い versionCode の APK での上書きを拒否するので、
+  新しい DB を古いアプリで開いてしまう事故を防げる
+- テスト: `./gradlew testDebugUnitTest`
 - AGP 9.x は Kotlin プラグインを内蔵しているため、`org.jetbrains.kotlin.android` は**入れてはいけない**
 
 ### 9.1 署名(重要)

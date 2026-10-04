@@ -21,8 +21,10 @@ android {
         applicationId = "com.hong.volace"
         minSdk = 33
         targetSdk = 37
-        versionCode = 1
-        versionName = "1.0"
+        // Bump on every build handed to a device: adb then refuses to install an older APK over a
+        // newer one, whose database it could not open (see VolaceDatabase).
+        versionCode = 2
+        versionName = "1.1"
     }
 
     signingConfigs {
@@ -68,6 +70,18 @@ android {
     buildFeatures {
         compose = true
     }
+
+    // Migration tests run on the JVM under Robolectric, which reads the app's own merged assets
+    // (test-source-set assets are not seen), so the exported schemas ride along in debug only.
+    sourceSets.getByName("debug").assets.directories.add("$projectDir/schemas")
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
+    }
+}
+
+ksp {
+    // Every schema version is kept in the repo so migrations can be tested against the real thing.
+    arg("room.schemaLocation", "$projectDir/schemas")
 }
 
 dependencies {
@@ -86,4 +100,9 @@ dependencies {
     implementation("androidx.room:room-runtime:2.8.4")
     implementation("androidx.room:room-ktx:2.8.4")
     ksp("androidx.room:room-compiler:2.8.4")
+
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("org.robolectric:robolectric:4.17")
+    testImplementation("androidx.test:core:1.7.0")
+    testImplementation("androidx.room:room-testing:2.8.4")
 }
