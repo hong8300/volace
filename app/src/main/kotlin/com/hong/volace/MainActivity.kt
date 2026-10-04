@@ -39,9 +39,12 @@ class MainActivity : ComponentActivity() {
         dndGrantedState.value = checkDndAccess()
 
         lifecycleScope.launch(Dispatchers.IO) {
-            val dao = db.profileDao()
-            if (dao.count() == 0) {
-                dao.insertAll(DefaultProfiles.build(volumeApplier))
+            // Seed the defaults once per install. Checking only for an empty table brought the
+            // four defaults back on every launch after the user had deleted them all.
+            val prefs = getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            if (!prefs.getBoolean(KEY_SEEDED, false)) {
+                db.profileDao().insertIfEmpty(DefaultProfiles.build(volumeApplier))
+                prefs.edit().putBoolean(KEY_SEEDED, true).apply()
                 WidgetRefresher.refreshAll(applicationContext)
             }
         }
@@ -90,6 +93,11 @@ class MainActivity : ComponentActivity() {
         super.onPause()
         // Anything changed in the app should be visible on the home screen straight away.
         WidgetRefresher.request(this)
+    }
+
+    private companion object {
+        const val PREFS = "volace"
+        const val KEY_SEEDED = "defaults_seeded"
     }
 
     private fun checkDndAccess(): Boolean {

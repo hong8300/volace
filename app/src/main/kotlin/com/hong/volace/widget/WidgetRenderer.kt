@@ -99,7 +99,7 @@ object WidgetRenderer {
             if (showStatus) renderStatus(context, views, style.status, state)
         }
         when {
-            state.profiles.isEmpty() -> renderEmpty(context, views)
+            state.profiles.isEmpty() -> renderEmpty(context, views, style)
             style.cycles -> renderCycle(context, views, state)
             else -> renderGrid(context, views, style, state)
         }
@@ -172,7 +172,7 @@ object WidgetRenderer {
         }
     }
 
-    private fun renderEmpty(context: Context, views: RemoteViews) {
+    private fun renderEmpty(context: Context, views: RemoteViews, style: WidgetStyle) {
         val cell = CELLS[0]
         views.setViewVisibility(cell.root, View.VISIBLE)
         views.setInt(cell.bg, "setColorFilter", EMPTY_TINT)
@@ -187,6 +187,8 @@ object WidgetRenderer {
         for (index in 1 until CELLS.size) {
             views.setViewVisibility(CELLS[index].root, View.GONE)
         }
+        // Otherwise the empty row keeps its weight and leaves the lower half blank.
+        style.secondRow?.let { views.setViewVisibility(it, View.GONE) }
     }
 
     /**

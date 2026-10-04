@@ -101,6 +101,8 @@ fun ProfileEditScreen(
     var original by remember { mutableStateOf<Profile?>(null) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
     var showDiscardConfirm by remember { mutableStateOf(false) }
+    // A second tap while the first save is still writing would insert the new profile twice.
+    var saving by remember { mutableStateOf(false) }
 
     // Back (gesture, key or the arrow) returns to the list. Without this the system back
     // finished the activity, closing the app and silently dropping the edits.
@@ -117,7 +119,7 @@ fun ProfileEditScreen(
 
     LaunchedEffect(profileId) {
         val loaded = profileId?.let { dao.getById(it) } ?: run {
-            val index = dao.count()
+            val index = dao.nextOrderIndex()
             Profile(
                 name = "新しいプロファイル",
                 orderIndex = index,
@@ -182,7 +184,12 @@ fun ProfileEditScreen(
                         Text("キャンセル")
                     }
                     Button(
-                        onClick = {
+                        enabled = !saving,
+                        onClick = onClick@{
+                            // Disabling the button only takes effect on the next frame; two taps in
+                            // the same frame both reach here, so guard the click itself too.
+                            if (saving) return@onClick
+                            saving = true
                             scope.launch {
                                 val toSave = current.copy(name = current.name.ifBlank { "無題" })
                                 val message = if (profileId == null) {
