@@ -1,5 +1,6 @@
 package com.hong.volace.ui.list
 
+import android.content.Intent
 import android.media.AudioManager
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -25,6 +26,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.SwapVert
@@ -33,8 +35,8 @@ import androidx.compose.material.icons.filled.Vibration
 import androidx.compose.material.icons.filled.VolumeOff
 import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -44,6 +46,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -97,42 +100,57 @@ fun ProfileListScreen(
         AddWidgetDialog(onDismiss = { showWidgetPicker = false })
     }
 
+    // Every action is spelled out: bare icons (a widget grid, a check mark) were not recognised.
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Volace", fontWeight = FontWeight.Bold) },
                 actions = {
-                    IconButton(onClick = { showWidgetPicker = true }) {
-                        Icon(
-                            Icons.Filled.Widgets,
-                            contentDescription = "ウィジェットを追加",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
                     if (profiles.size > 1) {
-                        IconButton(onClick = { reorderMode = !reorderMode }) {
+                        TextButton(onClick = { reorderMode = !reorderMode }) {
                             Icon(
-                                Icons.Filled.SwapVert,
-                                contentDescription = "並べ替え",
-                                tint = if (reorderMode) MaterialTheme.colorScheme.primary
-                                else MaterialTheme.colorScheme.onSurfaceVariant,
+                                if (reorderMode) Icons.Filled.Check else Icons.Filled.SwapVert,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp),
                             )
+                            Spacer(Modifier.width(4.dp))
+                            Text(if (reorderMode) "完了" else "並べ替え")
                         }
                     }
                 },
             )
         },
-        floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = onAddProfile,
-                icon = { Icon(Icons.Filled.Add, contentDescription = null) },
-                text = { Text("追加") },
-            )
+        bottomBar = {
+            BottomAppBar {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    // The app is mostly opened from a widget; this is the way back to it.
+                    BarAction(Icons.Filled.Home, "ホーム画面へ", Modifier.weight(1f)) {
+                        context.startActivity(
+                            Intent(Intent.ACTION_MAIN)
+                                .addCategory(Intent.CATEGORY_HOME)
+                                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                        )
+                    }
+                    BarAction(Icons.Filled.Widgets, "ウィジェット追加", Modifier.weight(1f)) {
+                        showWidgetPicker = true
+                    }
+                    BarAction(
+                        Icons.Filled.Add,
+                        "プロファイル追加",
+                        Modifier.weight(1f),
+                        emphasized = true,
+                        onClick = onAddProfile,
+                    )
+                }
+            }
         },
     ) { padding ->
         LazyColumn(
             modifier = Modifier.padding(padding).fillMaxSize(),
-            contentPadding = PaddingValues(start = 12.dp, end = 12.dp, top = 4.dp, bottom = 96.dp),
+            contentPadding = PaddingValues(start = 12.dp, end = 12.dp, top = 4.dp, bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             item(key = "current-volume") {
@@ -172,7 +190,7 @@ fun ProfileListScreen(
             if (profiles.isEmpty()) {
                 item {
                     Text(
-                        "「追加」からプロファイルを作成してください。",
+                        "「プロファイルを追加」から作成してください。",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(24.dp),
@@ -180,6 +198,37 @@ fun ProfileListScreen(
                 }
             }
         }
+    }
+}
+
+/** An icon with its name underneath, for the bottom bar. [emphasized] marks the main action. */
+@Composable
+private fun BarAction(
+    icon: ImageVector,
+    label: String,
+    modifier: Modifier = Modifier,
+    emphasized: Boolean = false,
+    onClick: () -> Unit,
+) {
+    val content = if (emphasized) MaterialTheme.colorScheme.onPrimaryContainer
+    else MaterialTheme.colorScheme.onSurfaceVariant
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(16.dp))
+            .background(if (emphasized) MaterialTheme.colorScheme.primaryContainer else Color.Transparent)
+            .clickable(onClick = onClick)
+            .padding(vertical = 8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Icon(icon, contentDescription = null, tint = content, modifier = Modifier.size(22.dp))
+        Spacer(Modifier.height(3.dp))
+        Text(
+            label,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = if (emphasized) FontWeight.SemiBold else FontWeight.Normal,
+            color = content,
+            maxLines = 1,
+        )
     }
 }
 
