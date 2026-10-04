@@ -4,6 +4,7 @@ import android.content.Context
 import com.hong.volace.data.Profile
 import com.hong.volace.data.ProfileDao
 import com.hong.volace.data.VolaceDatabase
+import com.hong.volace.schedule.Schedules
 import com.hong.volace.timer.ProfileTimers
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
@@ -56,8 +57,11 @@ object ProfileSwitcher {
         // Only what Android accepted is recorded as in effect (see ApplyResult).
         if (result == ApplyResult.Applied) {
             dao.applyActive(target.id)
-            // Choosing a profile by hand ends a timed one: restoring at the end would undo the choice.
-            if (endsTimer) ProfileTimers.dropLocked(app)
+            if (endsTimer) {
+                // Choosing a profile by hand ends a timed one: restoring at the end would undo the choice.
+                ProfileTimers.dropLocked(app)
+                Schedules.noteManualChoice(app, target.id)
+            }
         }
         Outcome(target, result)
     }

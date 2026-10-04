@@ -1,5 +1,11 @@
 package com.hong.volace.ui.edit
 
+import androidx.compose.runtime.produceState
+import com.hong.volace.data.VolaceDatabase
+import com.hong.volace.schedule.Schedules
+import com.hong.volace.ui.schedule.scheduleDeleteNote
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import android.media.AudioManager
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
@@ -305,14 +311,26 @@ fun ProfileEditScreen(
         }
 
         if (showDeleteConfirm) {
+            val schedule = remember(context) { VolaceDatabase.get(context).scheduleDao() }
+            val scheduled by produceState(0, current.id) { value = schedule.countForProfile(current.id) }
             AlertDialog(
                 onDismissRequest = { showDeleteConfirm = false },
                 title = { Text(stringResource(R.string.delete_title)) },
-                text = { Text(stringResource(R.string.delete_body, current.name)) },
+                text = {
+                    Text(
+                        listOfNotNull(stringResource(R.string.delete_body, current.name), scheduleDeleteNote(scheduled))
+                            .joinToString("\n"),
+                    )
+                },
                 confirmButton = {
                     TextButton(onClick = {
                         scope.launch {
                             dao.delete(current)
+                            // Its rules would only fail at their time ("deleted profile").
+                            if (scheduled > 0) {
+                                schedule.deleteForProfile(current.id)
+                                withContext(Dispatchers.IO) { Schedules.onRulesChanged(context) }
+                            }
                             WidgetRefresher.request(context)
                             onDone(resources.getString(R.string.deleted, current.name))
                         }

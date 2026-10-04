@@ -18,9 +18,11 @@ import androidx.lifecycle.lifecycleScope
 import com.hong.volace.audio.VolumeApplier
 import com.hong.volace.data.DefaultProfiles
 import com.hong.volace.data.VolaceDatabase
+import com.hong.volace.schedule.Schedules
 import com.hong.volace.ui.edit.ProfileEditScreen
 import com.hong.volace.ui.list.ProfileListScreen
 import com.hong.volace.ui.onboarding.OnboardingScreen
+import com.hong.volace.ui.schedule.ScheduleScreen
 import com.hong.volace.ui.theme.VolaceTheme
 import com.hong.volace.widget.WidgetRefresher
 import kotlinx.coroutines.Dispatchers
@@ -29,6 +31,7 @@ import kotlinx.coroutines.launch
 sealed interface Screen {
     data object ProfileList : Screen
     data class ProfileEdit(val profileId: Long?) : Screen
+    data object Schedule : Screen
 }
 
 /** Keeps the open screen across rotation and process death. Ids are never negative. */
@@ -37,12 +40,14 @@ private val ScreenSaver = Saver<Screen, Long>(
         when (screen) {
             Screen.ProfileList -> -1L
             is Screen.ProfileEdit -> screen.profileId ?: -2L
+            Screen.Schedule -> -3L
         }
     },
     restore = { saved ->
         when (saved) {
             -1L -> Screen.ProfileList
             -2L -> Screen.ProfileEdit(null)
+            -3L -> Screen.Schedule
             else -> Screen.ProfileEdit(saved)
         }
     },
@@ -66,6 +71,8 @@ class MainActivity : ComponentActivity() {
                 prefs.edit().putBoolean(KEY_SEEDED, true).apply()
                 WidgetRefresher.refreshAll(applicationContext)
             }
+            // The schedule's alarm is gone after a force stop, which no broadcast reports.
+            Schedules.reschedule(applicationContext)
         }
 
         setContent {
@@ -86,6 +93,8 @@ class MainActivity : ComponentActivity() {
                                 volumeApplier = volumeApplier,
                                 onEditProfile = { id -> screen = Screen.ProfileEdit(id) },
                                 onAddProfile = { screen = Screen.ProfileEdit(null) },
+                                scheduleDao = db.scheduleDao(),
+                                onOpenSchedule = { screen = Screen.Schedule },
                                 message = message,
                                 onMessageShown = { message = null },
                             )
@@ -97,6 +106,11 @@ class MainActivity : ComponentActivity() {
                                     message = result
                                     screen = Screen.ProfileList
                                 },
+                            )
+                            Screen.Schedule -> ScheduleScreen(
+                                profileDao = db.profileDao(),
+                                scheduleDao = db.scheduleDao(),
+                                onBack = { screen = Screen.ProfileList },
                             )
                         }
                     }

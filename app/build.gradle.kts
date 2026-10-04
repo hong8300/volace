@@ -20,7 +20,11 @@ android {
     defaultConfig {
         applicationId = "com.hong.volace"
         minSdk = 33
-        targetSdk = 37
+        // Not 37: an app targeting 37 may change volumes from the background only in a foreground
+        // service started by a user action, which rules out the schedule's alarm (DESIGN.md 8.7).
+        // Side-loaded, so no store requires the latest target. compileSdk stays at 37.
+        //noinspection OldTargetApi
+        targetSdk = 36
         // Bump on every build handed to a device: adb then refuses to install an older APK over a
         // newer one, whose database it could not open (see VolaceDatabase).
         versionCode = 2

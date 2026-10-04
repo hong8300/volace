@@ -28,10 +28,10 @@ import java.util.Date
 private const val TAG = "VolaceTimer"
 
 /**
- * Runs from the start of a timed profile to its end, showing it as an ongoing notification. Its
- * real job is to be there: while it runs (started from a visible activity), Android 17 lets the
- * app change volumes from the background, which the alarm at the end needs (DESIGN.md 5.14).
- * It does no work of its own; the alarm ([TimerReceiver]) ends the timer.
+ * Runs from the start of a timed profile to its end, showing it as an ongoing notification, and
+ * ends it: Android 17 lets the app change volumes from the background only while a foreground
+ * service runs (DESIGN.md 5.14, 8.7). The alarm at the end ([TimerReceiver]) sends [ACTION_EXPIRE]
+ * here, which also starts the service again when it is gone (after a reboot, or killed).
  */
 class TimerService : Service() {
 
@@ -47,6 +47,17 @@ class TimerService : Service() {
             // API 33 has no "special use" type; the manifest's is used.
             startForeground(TimerNotifications.RUNNING_ID, notification)
         }
+        if (intent?.action == ACTION_EXPIRE) {
+            val app = applicationContext
+            // Not tied to the service's lifetime: expire() stops it before the redraw.
+            WidgetScope.run(null) {
+                ProfileTimers.expire(app)
+                WidgetRefresher.refreshAll(app)
+                // A stale alarm (the timer was extended) leaves the timer running, and the service with it.
+                if (ProfileTimers.current(app) == null) stop(app)
+            }
+            return START_NOT_STICKY
+        }
         if (timer == null || timer.isDue(System.currentTimeMillis())) {
             stopSelf()
             return START_NOT_STICKY
@@ -56,9 +67,17 @@ class TimerService : Service() {
     }
 
     companion object {
+        private const val ACTION_EXPIRE = "com.hong.volace.action.TIMER_SERVICE_EXPIRE"
+
+        /** The alarm at the end: ends the timer inside the service. False when it could not start. */
+        fun expire(context: Context): Boolean =
+            runCatching {
+                context.startForegroundService(Intent(context, TimerService::class.java).setAction(ACTION_EXPIRE))
+            }.onFailure { Log.w(TAG, "could not start the timer service to end the timer", it) }.isSuccess
+
         fun start(context: Context) {
-            // Not allowed from some background states (then only the capability is lost: the end
-            // falls back to the "tap to restore" notification).
+            // Not allowed from some background states. Then only the notification is missing: the
+            // alarm at the end starts the service by itself (expire).
             runCatching { context.startForegroundService(Intent(context, TimerService::class.java)) }
                 .onFailure { Log.w(TAG, "could not start the timer service", it) }
         }
@@ -188,6 +207,8 @@ class TimerReceiver : BroadcastReceiver() {
         val app = context.applicationContext
         val action = intent.action
         if (action != ACTION_EXPIRE && action != ACTION_EXTEND) return
+        // Going back is done in the service (an exact alarm may start it from the background).
+        if (action == ACTION_EXPIRE && TimerService.expire(app)) return
         WidgetScope.run(goAsync()) {
             if (action == ACTION_EXPIRE) ProfileTimers.expire(app) else ProfileTimers.extend(app)
             WidgetRefresher.refreshAll(app)

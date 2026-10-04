@@ -79,6 +79,31 @@ class MigrationTest {
         }
     }
 
+    @Test
+    fun migrate3To4_keepsEveryProfileAndAddsAnEmptySchedule() {
+        helper.createDatabase(DB, 3).use { db ->
+            db.execSQL(
+                "INSERT INTO profiles (id, name, orderIndex, ringerMode, ringVolume, " +
+                    "notificationVolume, mediaVolume, alarmVolume, voiceCallVolume, systemVolume, " +
+                    "isActive, colorArgb, iconKey, keepMask) VALUES (5, 'マナー', 1, 1, 0, 0, 0, 6, 11, 0, 1, 42, 'vibration', 4)",
+            )
+        }
+
+        helper.runMigrationsAndValidate(DB, 4, true, *VolaceDatabase.MIGRATIONS).use { db ->
+            db.query("SELECT name, keepMask FROM profiles WHERE id = 5").use { c ->
+                assertTrue(c.moveToFirst())
+                assertEquals("マナー", c.getString(0))
+                assertEquals(4, c.getInt(1))
+            }
+            db.query("SELECT COUNT(*) FROM schedule_rules").use { c ->
+                assertTrue(c.moveToFirst())
+                assertEquals(0, c.getInt(0))
+            }
+            db.execSQL("INSERT INTO schedule_rules (minuteOfDay, days, profileId, enabled) VALUES (1320, 31, 5, 1)")
+            db.execSQL("INSERT INTO schedule_skips (fromDay, toDay) VALUES (20000, 20002)")
+        }
+    }
+
     /** What the app itself does on launch: every registered migration must get it to the latest. */
     @Test
     fun appBuilder_opensOldestSchemaWithoutLosingData() {
@@ -114,7 +139,7 @@ class MigrationTest {
                     "notificationVolume, mediaVolume, alarmVolume, voiceCallVolume, systemVolume, " +
                     "isActive, colorArgb, iconKey, keepMask) VALUES ('通常', 0, 2, 5, 5, 15, 6, 11, 5, 0, 0, 'bell', 0)",
             )
-            db.execSQL("PRAGMA user_version = 4") // as written by a future build
+            db.execSQL("PRAGMA user_version = 5") // as written by a future build
         }
 
         val db = VolaceDatabase.builder(context, DB).allowMainThreadQueries().build()
