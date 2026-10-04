@@ -149,8 +149,6 @@
     <string name="capture">現在の着信モードと音量を取り込む</string>
     <string name="keep_value">変更しない</string>
     <string name="keep_switch">この音量は変更しない</string>
-    <string name="volume_down">下げる</string>
-    <string name="volume_up">上げる</string>
     <string name="hint_normal">着信・通知は下の音量で鳴ります。</string>
     <string name="hint_vibrate">着信・通知は鳴らずにバイブします。メディア・アラーム・通話は下の音量のまま鳴ります。</string>
     <string name="hint_silent">着信・通知は鳴らず、バイブもしません。メディア・アラーム・通話は下の音量のまま鳴ります。Android の仕様でサイレント モード（DND）もオンになり、ステータスバーはバイブ表示になります（「着信音」に戻すと自動で解除）。</string>
@@ -200,4 +198,18 @@
     <string name="skin_contrast_desc">黒と白で、文字やバーをはっきり見せる</string>
     <string name="skin_midnight">ミッドナイト</string>
     <string name="skin_midnight_desc">深い紺色</string>
+    <!-- Accessibility -->
+    <string name="color_blue">青</string>
+    <string name="color_teal">青緑</string>
+    <string name="color_green">緑</string>
+    <string name="color_amber">黄</string>
+    <string name="color_deep_orange">オレンジ</string>
+    <string name="color_red">赤</string>
+    <string name="color_pink">ピンク</string>
+    <string name="color_purple">紫</string>
+    <string name="color_indigo">藍</string>
+    <string name="color_blue_grey">灰青</string>
+    <string name="a11y_lower">%1$sを下げる</string>
+    <string name="a11y_raise">%1$sを上げる</string>
+    <string name="a11y_level">%2$d段階中%1$d</string>
 </resources>

@@ -64,6 +64,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -87,6 +88,10 @@ import kotlinx.coroutines.launch
 import androidx.compose.ui.res.stringResource
 import com.hong.volace.R
 import com.hong.volace.ui.theme.readableOn
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.foundation.layout.navigationBarsPadding
 
 private val BarHeight = 30.dp
 
@@ -162,29 +167,33 @@ fun ProfileListScreen(
             )
         },
         bottomBar = {
-            BottomAppBar {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    // The app is mostly opened from a widget; this is the way back to it.
-                    BarAction(Icons.Filled.Home, stringResource(R.string.bar_home), Modifier.weight(1f)) {
-                        context.startActivity(
-                            Intent(Intent.ACTION_MAIN)
-                                .addCategory(Intent.CATEGORY_HOME)
-                                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+            // A plain surface rather than BottomAppBar: that one has a fixed height, which cut off the
+            // second line of the labels once the font is enlarged.
+            Surface(color = MaterialTheme.colorScheme.surfaceContainer, tonalElevation = 3.dp) {
+                Box(modifier = Modifier.navigationBarsPadding().padding(vertical = 10.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        // The app is mostly opened from a widget; this is the way back to it.
+                        BarAction(Icons.Filled.Home, stringResource(R.string.bar_home), Modifier.weight(1f)) {
+                            context.startActivity(
+                                Intent(Intent.ACTION_MAIN)
+                                    .addCategory(Intent.CATEGORY_HOME)
+                                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                            )
+                        }
+                        BarAction(Icons.Filled.Widgets, stringResource(R.string.bar_add_widget), Modifier.weight(1f)) {
+                            showWidgetPicker = true
+                        }
+                        BarAction(
+                            Icons.Filled.Add,
+                            stringResource(R.string.bar_add_profile),
+                            Modifier.weight(1f),
+                            emphasized = true,
+                            onClick = onAddProfile,
                         )
                     }
-                    BarAction(Icons.Filled.Widgets, stringResource(R.string.bar_add_widget), Modifier.weight(1f)) {
-                        showWidgetPicker = true
-                    }
-                    BarAction(
-                        Icons.Filled.Add,
-                        stringResource(R.string.bar_add_profile),
-                        Modifier.weight(1f),
-                        emphasized = true,
-                        onClick = onAddProfile,
-                    )
                 }
             }
         },
@@ -281,7 +290,9 @@ private fun BarAction(
             style = MaterialTheme.typography.labelMedium,
             fontWeight = if (emphasized) FontWeight.SemiBold else FontWeight.Normal,
             color = content,
-            maxLines = 1,
+            // Two lines rather than cut off when the font is enlarged.
+            maxLines = 2,
+            textAlign = TextAlign.Center,
         )
     }
 }
@@ -521,7 +532,17 @@ private fun ActivePill(accent: Color, drifted: Boolean) {
 private fun MiniVolumeBars(profile: Profile, maxes: Map<VolumeStream, Int>, accent: Color) {
     val trackColor = MaterialTheme.colorScheme.outlineVariant
     val labelColor = MaterialTheme.colorScheme.onSurfaceVariant
-    Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.Bottom) {
+    val resources = LocalResources.current
+    val summary = VolumeStream.entries.joinToString(resources.getString(R.string.detail_separator)) { stream ->
+        val name = resources.getString(stream.label)
+        if (stream.isKeptBy(profile)) "$name ${resources.getString(R.string.keep_value)}"
+        else "$name ${stream.valueOf(profile)}/${maxes[stream] ?: 0}"
+    }
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.Bottom,
+        modifier = Modifier.clearAndSetSemantics { contentDescription = summary },
+    ) {
         VolumeStream.entries.forEach { stream ->
             val max = (maxes[stream] ?: 1).coerceAtLeast(1)
             // A stream the profile leaves alone shows an empty track ("変更しない").

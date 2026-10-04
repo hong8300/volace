@@ -20,6 +20,13 @@ object ProfilePalette {
         0xFF78909C.toInt(), // blue grey
     )
 
+    /** Names for TalkBack, same order as [COLORS]. */
+    val NAMES: List<Int> = listOf(
+        R.string.color_blue, R.string.color_teal, R.string.color_green, R.string.color_amber,
+        R.string.color_deep_orange, R.string.color_red, R.string.color_pink, R.string.color_purple,
+        R.string.color_indigo, R.string.color_blue_grey,
+    )
+
     val DEFAULT: Int = COLORS[0]
 
     fun forIndex(index: Int): Int = COLORS[(index.coerceAtLeast(0)) % COLORS.size]

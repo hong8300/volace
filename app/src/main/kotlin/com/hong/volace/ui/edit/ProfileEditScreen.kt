@@ -74,6 +74,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -101,6 +102,12 @@ import androidx.annotation.StringRes
 import androidx.compose.ui.res.stringResource
 import com.hong.volace.R
 import com.hong.volace.ui.theme.readableOn
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.foundation.layout.heightIn
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -113,6 +120,7 @@ fun ProfileEditScreen(
 ) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val resources = LocalResources.current
     // Saveable: rotation, a theme switch or the process being reclaimed must not drop the edit.
     var profile by rememberSaveable(stateSaver = ProfileSaver) { mutableStateOf<Profile?>(null) }
     /** As loaded (or as first generated, for a new profile), to tell whether anything changed. */
@@ -146,7 +154,7 @@ fun ProfileEditScreen(
         val loaded = profileId?.let { dao.getById(it) } ?: run {
             val index = dao.nextOrderIndex()
             Profile(
-                name = context.getString(R.string.new_profile_name),
+                name = resources.getString(R.string.new_profile_name),
                 orderIndex = index,
                 ringerMode = volumeApplier.snapshot().ringerMode,
                 ringVolume = volumeApplier.currentVolume(VolumeStream.RINGER),
@@ -200,14 +208,14 @@ fun ProfileEditScreen(
                             scope.launch {
                                 profile = current.copy(
                                     id = 0,
-                                    name = context.getString(R.string.copy_name, current.name),
+                                    name = resources.getString(R.string.copy_name, current.name),
                                     isActive = false,
                                     orderIndex = dao.nextOrderIndex(),
                                 )
                                 // Nothing to compare against: backing out asks before dropping it.
                                 original = null
                                 duplicating = true
-                                snackbar.showSnackbar(context.getString(R.string.duplicated_message))
+                                snackbar.showSnackbar(resources.getString(R.string.duplicated_message))
                             }
                         }) {
                             Icon(Icons.Filled.ContentCopy, contentDescription = null, modifier = Modifier.size(18.dp))
@@ -233,7 +241,7 @@ fun ProfileEditScreen(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    OutlinedButton(onClick = { leave() }, modifier = Modifier.weight(1f).height(48.dp)) {
+                    OutlinedButton(onClick = { leave() }, modifier = Modifier.weight(1f).heightIn(min = 48.dp)) {
                         Text(stringResource(R.string.cancel))
                     }
                     Button(
@@ -244,19 +252,19 @@ fun ProfileEditScreen(
                             if (saving) return@onClick
                             saving = true
                             scope.launch {
-                                val toSave = current.copy(name = current.name.ifBlank { context.getString(R.string.untitled) })
+                                val toSave = current.copy(name = current.name.ifBlank { resources.getString(R.string.untitled) })
                                 val message = if (editId == null) {
                                     dao.insert(toSave)
-                                    context.getString(R.string.saved, toSave.name)
+                                    resources.getString(R.string.saved, toSave.name)
                                 } else {
                                     dao.saveEdits(toSave.edits())
                                     // The profile in effect is re-applied, otherwise saving alone
                                     // would turn it into "変更あり" (the device keeps the old values).
                                     val outcome = ProfileSwitcher.apply(context, editId, onlyIfActive = true)
                                     when (outcome?.result) {
-                                        null -> context.getString(R.string.saved, toSave.name)
-                                        ApplyResult.Applied -> context.getString(R.string.saved_applied, toSave.name)
-                                        else -> context.getString(
+                                        null -> resources.getString(R.string.saved, toSave.name)
+                                        ApplyResult.Applied -> resources.getString(R.string.saved_applied, toSave.name)
+                                        else -> resources.getString(
                                             R.string.saved_with_problem,
                                             outcome.result.message(context, toSave.name),
                                         )
@@ -266,7 +274,7 @@ fun ProfileEditScreen(
                                 onDone(message)
                             }
                         },
-                        modifier = Modifier.weight(1f).height(48.dp),
+                        modifier = Modifier.weight(1f).heightIn(min = 48.dp),
                     ) {
                         Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(6.dp))
@@ -306,7 +314,7 @@ fun ProfileEditScreen(
                         scope.launch {
                             dao.delete(current)
                             WidgetRefresher.request(context)
-                            onDone(context.getString(R.string.deleted, current.name))
+                            onDone(resources.getString(R.string.deleted, current.name))
                         }
                     }) { Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error) }
                 },
@@ -397,8 +405,8 @@ fun ProfileEditScreen(
                     scope.launch {
                         snackbar.currentSnackbarData?.dismiss()
                         val result = snackbar.showSnackbar(
-                            context.getString(R.string.captured),
-                            actionLabel = context.getString(R.string.undo),
+                            resources.getString(R.string.captured),
+                            actionLabel = resources.getString(R.string.undo),
                             duration = SnackbarDuration.Short,
                         )
                         if (result == SnackbarResult.ActionPerformed) profile = before
@@ -445,7 +453,18 @@ fun ProfileEditScreen(
                                 color = if (selected) MaterialTheme.colorScheme.onSurface else Color.Transparent,
                                 shape = CircleShape,
                             )
-                            .clickable { profile = current.copy(colorArgb = color) },
+                            // Read as "青, selected" rather than an unlabelled button.
+                            .selectable(
+                                selected = selected,
+                                role = Role.RadioButton,
+                                onClick = { profile = current.copy(colorArgb = color) },
+                            )
+                            .semantics {
+                                contentDescription = ProfilePalette.NAMES
+                                    .getOrNull(ProfilePalette.COLORS.indexOf(color))
+                                    ?.let { resources.getString(it) }
+                                    .orEmpty()
+                            },
                         contentAlignment = Alignment.Center,
                     ) {
                         if (selected) {
@@ -474,7 +493,11 @@ fun ProfileEditScreen(
                             .background(
                                 if (selected) accent else MaterialTheme.colorScheme.surfaceContainerHigh,
                             )
-                            .clickable { profile = current.copy(iconKey = entry.key) },
+                            .selectable(
+                                selected = selected,
+                                role = Role.RadioButton,
+                                onClick = { profile = current.copy(iconKey = entry.key) },
+                            ),
                         contentAlignment = Alignment.Center,
                     ) {
                         Icon(
@@ -516,6 +539,8 @@ private fun StreamSliderRow(
     onKeptChange: (Boolean) -> Unit,
     onValueChange: (Int) -> Unit,
 ) {
+    val streamName = stringResource(stream.label)
+    val levelDescription = if (kept) stringResource(R.string.keep_value) else stringResource(R.string.a11y_level, value, max)
     Surface(
         shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surfaceContainer,
@@ -574,7 +599,13 @@ private fun StreamSliderRow(
                     onClick = { onValueChange((value - 1).coerceAtLeast(range.first)) },
                     enabled = !kept && value > range.first,
                     modifier = Modifier.size(36.dp),
-                ) { Icon(Icons.Filled.Remove, contentDescription = stringResource(R.string.volume_down), modifier = Modifier.size(18.dp)) }
+                ) {
+                    Icon(
+                        Icons.Filled.Remove,
+                        contentDescription = stringResource(R.string.a11y_lower, stringResource(stream.label)),
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
                 Slider(
                     value = value.toFloat(),
                     enabled = !kept,
@@ -589,13 +620,25 @@ private fun StreamSliderRow(
                         activeTickColor = Color.Transparent,
                         inactiveTickColor = Color.Transparent,
                     ),
-                    modifier = Modifier.weight(1f).padding(horizontal = 4.dp),
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(horizontal = 4.dp)
+                        .semantics {
+                            contentDescription = streamName
+                            stateDescription = levelDescription
+                        },
                 )
                 IconButton(
                     onClick = { onValueChange((value + 1).coerceAtMost(range.last)) },
                     enabled = !kept && value < range.last,
                     modifier = Modifier.size(36.dp),
-                ) { Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.volume_up), modifier = Modifier.size(18.dp)) }
+                ) {
+                    Icon(
+                        Icons.Filled.Add,
+                        contentDescription = stringResource(R.string.a11y_raise, stringResource(stream.label)),
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
             }
         }
     }
@@ -613,10 +656,13 @@ private fun RingerModeButton(
     Surface(
         shape = RoundedCornerShape(16.dp),
         color = if (selected) accent else MaterialTheme.colorScheme.surfaceContainerHigh,
-        modifier = modifier.height(64.dp).clickable(onClick = onClick),
+        // heightIn: a fixed 64dp clipped the label at large font sizes.
+        modifier = modifier
+            .heightIn(min = 64.dp)
+            .selectable(selected = selected, role = Role.RadioButton, onClick = onClick),
     ) {
         Column(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
