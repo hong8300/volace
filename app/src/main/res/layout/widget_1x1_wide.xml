@@ -12,6 +12,7 @@
 
     <FrameLayout
         android:id="@+id/cell_0"
+        android:foreground="@drawable/widget_press"
         android:layout_width="0dp"
         android:layout_height="match_parent"
         android:layout_weight="1"
@@ -80,6 +81,7 @@
 
     <LinearLayout
         android:id="@+id/pick_button"
+        android:foreground="@drawable/widget_press"
         android:layout_width="0dp"
         android:layout_height="match_parent"
         android:layout_weight="1"

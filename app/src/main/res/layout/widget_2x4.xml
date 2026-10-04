@@ -12,6 +12,7 @@
          opens the app. Hidden by WidgetRenderer when the widget is too short to fit it. -->
     <LinearLayout
         android:id="@+id/status_panel"
+        android:foreground="@drawable/widget_press"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_margin="3dp"
@@ -417,6 +418,7 @@
 
     <FrameLayout
         android:id="@+id/cell_0"
+        android:foreground="@drawable/widget_press"
         android:layout_width="0dp"
         android:layout_height="match_parent"
         android:layout_weight="1"
@@ -473,6 +475,7 @@
 
     <FrameLayout
         android:id="@+id/cell_1"
+        android:foreground="@drawable/widget_press"
         android:layout_width="0dp"
         android:layout_height="match_parent"
         android:layout_weight="1"
@@ -529,6 +532,7 @@
 
     <FrameLayout
         android:id="@+id/cell_2"
+        android:foreground="@drawable/widget_press"
         android:layout_width="0dp"
         android:layout_height="match_parent"
         android:layout_weight="1"
@@ -585,6 +589,7 @@
 
     <FrameLayout
         android:id="@+id/cell_3"
+        android:foreground="@drawable/widget_press"
         android:layout_width="0dp"
         android:layout_height="match_parent"
         android:layout_weight="1"
@@ -649,6 +654,7 @@
 
     <FrameLayout
         android:id="@+id/cell_4"
+        android:foreground="@drawable/widget_press"
         android:layout_width="0dp"
         android:layout_height="match_parent"
         android:layout_weight="1"
@@ -705,6 +711,7 @@
 
     <FrameLayout
         android:id="@+id/cell_5"
+        android:foreground="@drawable/widget_press"
         android:layout_width="0dp"
         android:layout_height="match_parent"
         android:layout_weight="1"
@@ -761,6 +768,7 @@
 
     <FrameLayout
         android:id="@+id/cell_6"
+        android:foreground="@drawable/widget_press"
         android:layout_width="0dp"
         android:layout_height="match_parent"
         android:layout_weight="1"
@@ -817,6 +825,7 @@
 
     <FrameLayout
         android:id="@+id/cell_7"
+        android:foreground="@drawable/widget_press"
         android:layout_width="0dp"
         android:layout_height="match_parent"
         android:layout_weight="1"

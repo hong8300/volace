@@ -199,4 +199,7 @@
     <string name="skin_contrast_desc">Black and white, for text and bars that stand out</string>
     <string name="skin_midnight">Midnight</string>
     <string name="skin_midnight_desc">Deep navy</string>
+    <string name="widget_label_1x1">1×1 Tap to switch</string>
+    <string name="widget_label_1x4">4×1 Pick to switch</string>
+    <string name="widget_label_2x4">4×2 With volume</string>
 </resources>
