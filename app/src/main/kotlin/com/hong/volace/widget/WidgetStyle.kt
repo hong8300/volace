@@ -28,18 +28,19 @@ internal val CELLS: List<CellRefs> = listOf(
 /** View ids of one stream's bar in the status panel. [value] only exists in the full panel. */
 internal data class StatRefs(
     val label: Int,
+    val track: Int,
     val fill: Int,
     val value: Int,
 )
 
 /** One entry per [com.hong.volace.audio.VolumeStream], in the same order. */
 internal val STATS: List<StatRefs> = listOf(
-    StatRefs(R.id.stat_0_label, R.id.stat_0_fill, R.id.stat_0_value),
-    StatRefs(R.id.stat_1_label, R.id.stat_1_fill, R.id.stat_1_value),
-    StatRefs(R.id.stat_2_label, R.id.stat_2_fill, R.id.stat_2_value),
-    StatRefs(R.id.stat_3_label, R.id.stat_3_fill, R.id.stat_3_value),
-    StatRefs(R.id.stat_4_label, R.id.stat_4_fill, R.id.stat_4_value),
-    StatRefs(R.id.stat_5_label, R.id.stat_5_fill, R.id.stat_5_value),
+    StatRefs(R.id.stat_0_label, R.id.stat_0_track, R.id.stat_0_fill, R.id.stat_0_value),
+    StatRefs(R.id.stat_1_label, R.id.stat_1_track, R.id.stat_1_fill, R.id.stat_1_value),
+    StatRefs(R.id.stat_2_label, R.id.stat_2_track, R.id.stat_2_fill, R.id.stat_2_value),
+    StatRefs(R.id.stat_3_label, R.id.stat_3_track, R.id.stat_3_fill, R.id.stat_3_value),
+    StatRefs(R.id.stat_4_label, R.id.stat_4_track, R.id.stat_4_fill, R.id.stat_4_value),
+    StatRefs(R.id.stat_5_label, R.id.stat_5_track, R.id.stat_5_fill, R.id.stat_5_value),
 )
 
 /** How a widget shows the device's current volumes (its tap target opens the app). */

@@ -79,13 +79,14 @@ import com.hong.volace.data.Profile
 import com.hong.volace.data.ProfileDao
 import com.hong.volace.data.icon
 import com.hong.volace.tile.ProfileTileService
-import com.hong.volace.ui.backup.BackupDialog
+import com.hong.volace.ui.settings.SettingsDialog
 import com.hong.volace.widget.WidgetRefresher
 import com.hong.volace.widget.WidgetStyle
 import com.hong.volace.widget.requestPinWidget
 import kotlinx.coroutines.launch
 import androidx.compose.ui.res.stringResource
 import com.hong.volace.R
+import com.hong.volace.ui.theme.readableOn
 
 private val BarHeight = 30.dp
 
@@ -108,7 +109,7 @@ fun ProfileListScreen(
     val context = LocalContext.current
     var reorderMode by remember { mutableStateOf(false) }
     var showWidgetPicker by remember { mutableStateOf(false) }
-    var showBackup by remember { mutableStateOf(false) }
+    var showSettings by remember { mutableStateOf(false) }
     val snackbar = remember { SnackbarHostState() }
     LaunchedEffect(message) {
         if (message == null) return@LaunchedEffect
@@ -124,11 +125,11 @@ fun ProfileListScreen(
     if (showWidgetPicker) {
         AddWidgetDialog(onDismiss = { showWidgetPicker = false })
     }
-    if (showBackup) {
-        BackupDialog(
+    if (showSettings) {
+        SettingsDialog(
             dao = dao,
             volumeApplier = volumeApplier,
-            onDismiss = { showBackup = false },
+            onDismiss = { showSettings = false },
             onMessage = { text ->
                 scope.launch {
                     snackbar.currentSnackbarData?.dismiss()
@@ -145,7 +146,7 @@ fun ProfileListScreen(
             TopAppBar(
                 title = { Text("Volace", fontWeight = FontWeight.Bold) },
                 actions = {
-                    TextButton(onClick = { showBackup = true }) { Text(stringResource(R.string.backup)) }
+                    TextButton(onClick = { showSettings = true }) { Text(stringResource(R.string.settings)) }
                     if (profiles.size > 1) {
                         TextButton(onClick = { reorderMode = !reorderMode }) {
                             Icon(
@@ -392,7 +393,7 @@ private fun ProfileRow(
                     Icon(
                         painter = painterResource(profile.icon.res),
                         contentDescription = null,
-                        tint = if (active) Color.White else accent,
+                        tint = if (active) readableOn(accent) else accent,
                         modifier = Modifier.size(24.dp),
                     )
                 }
@@ -503,11 +504,11 @@ private fun ActivePill(accent: Color, drifted: Boolean) {
         Icon(
             Icons.Filled.Check,
             contentDescription = null,
-            tint = Color.White,
+            tint = readableOn(accent),
             modifier = Modifier.size(11.dp),
         )
         Spacer(Modifier.width(2.dp))
-        Text(stringResource(R.string.active), color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.active), color = readableOn(accent), fontSize = 10.sp, fontWeight = FontWeight.Bold)
     }
 }
 
