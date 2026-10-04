@@ -100,6 +100,7 @@ import kotlinx.coroutines.launch
 import androidx.annotation.StringRes
 import androidx.compose.ui.res.stringResource
 import com.hong.volace.R
+import com.hong.volace.ui.theme.readableOn
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -332,7 +333,7 @@ fun ProfileEditScreen(
                     Icon(
                         painter = painterResource(current.icon.res),
                         contentDescription = null,
-                        tint = Color.White,
+                        tint = readableOn(accent),
                         modifier = Modifier.size(28.dp),
                     )
                 }
@@ -451,7 +452,7 @@ fun ProfileEditScreen(
                             Icon(
                                 Icons.Filled.Check,
                                 contentDescription = null,
-                                tint = Color.White,
+                                tint = readableOn(Color(color)),
                                 modifier = Modifier.size(20.dp),
                             )
                         }
@@ -479,7 +480,7 @@ fun ProfileEditScreen(
                         Icon(
                             painter = painterResource(entry.res),
                             contentDescription = stringResource(entry.label),
-                            tint = if (selected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                            tint = if (selected) readableOn(accent) else MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(23.dp),
                         )
                     }
@@ -622,14 +623,14 @@ private fun RingerModeButton(
             Icon(
                 icon,
                 contentDescription = null,
-                tint = if (selected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                tint = if (selected) readableOn(accent) else MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(20.dp),
             )
             Spacer(Modifier.height(3.dp))
             Text(
                 label,
                 style = MaterialTheme.typography.labelSmall,
-                color = if (selected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                color = if (selected) readableOn(accent) else MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }

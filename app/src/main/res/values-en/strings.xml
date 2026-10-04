@@ -182,4 +182,21 @@
     <string name="preview_profile_6">Home</string>
     <string name="preview_profile_7">Meeting</string>
     <string name="preview_profile_8">Outdoors</string>
+    <!-- Skins and settings -->
+    <string name="settings">Settings</string>
+    <string name="settings_skin">Skin</string>
+    <string name="settings_skin_desc">Look of the app and widgets (now: %1$s)</string>
+    <string name="settings_backup_desc">Save profiles to a file, or restore them</string>
+    <string name="skin_default">Default (dark)</string>
+    <string name="skin_default_desc">The original dark look</string>
+    <string name="skin_light">Light</string>
+    <string name="skin_light_desc">Bright background</string>
+    <string name="skin_auto">Match system</string>
+    <string name="skin_auto_desc">Light or dark, following the system dark theme</string>
+    <string name="skin_dynamic">Material You</string>
+    <string name="skin_dynamic_desc">Colors from your wallpaper (light/dark follows the system)</string>
+    <string name="skin_contrast">High contrast</string>
+    <string name="skin_contrast_desc">Black and white, for text and bars that stand out</string>
+    <string name="skin_midnight">Midnight</string>
+    <string name="skin_midnight_desc">Deep navy</string>
 </resources>

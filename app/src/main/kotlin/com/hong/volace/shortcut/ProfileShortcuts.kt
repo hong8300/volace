@@ -14,6 +14,7 @@ import com.hong.volace.R
 import com.hong.volace.data.Profile
 import com.hong.volace.data.VolaceDatabase
 import com.hong.volace.data.icon
+import com.hong.volace.data.contentColorOn
 
 /**
  * Launcher shortcuts (long-press the app icon): the first profiles, each applied in one tap.
@@ -79,7 +80,7 @@ object ProfileShortcuts {
         val canvas = Canvas(bitmap)
         canvas.drawColor(profile.colorArgb)
         context.getDrawable(profile.icon.res)?.mutate()?.apply {
-            colorFilter = PorterDuffColorFilter(android.graphics.Color.WHITE, PorterDuff.Mode.SRC_IN)
+            colorFilter = PorterDuffColorFilter(contentColorOn(profile.colorArgb), PorterDuff.Mode.SRC_IN)
             val inset = (size - glyph) / 2
             setBounds(inset, inset, inset + glyph, inset + glyph)
             draw(canvas)

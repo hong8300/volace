@@ -56,6 +56,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import androidx.compose.ui.res.stringResource
 import com.hong.volace.R
+import com.hong.volace.ui.theme.readableOn
 
 /**
  * The small chooser the Quick Settings tile opens: every profile by name, tap to apply. It is a
@@ -189,7 +190,7 @@ private fun PickerRow(profile: Profile, drifted: Boolean, onClick: () -> Unit) {
                 Icon(
                     painter = painterResource(profile.icon.res),
                     contentDescription = null,
-                    tint = if (active) Color.White else accent,
+                    tint = if (active) readableOn(accent) else accent,
                     modifier = Modifier.size(22.dp),
                 )
             }

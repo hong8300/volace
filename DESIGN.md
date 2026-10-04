@@ -325,6 +325,28 @@ AudioService は音量を `Settings.System`(`volume_music_speaker` 等、出力�
   (レイアウトの `@string` はウィジェット選択画面のプレビュー用)。音量名の欄の幅も言語で変わるので `setViewLayoutWidth` で設定する
 - 英語の音量名(Notifications など)は長いので、ラベル幅を `dimens.xml` で言語ごとに持つ
 
+### 5.13 スキン(issue #20)
+
+一覧の「設定」→「スキン」で、アプリとウィジェットの見た目を選ぶ(`Skin` / `SkinStore`、設定は SharedPreferences)。
+
+| スキン | 明暗 | 内容 |
+|---|---|---|
+| 既定(ダーク) | 暗 | これまでの見た目 |
+| ライト | 明 | 明るい背景 |
+| 端末に合わせる | 端末に追従 | ライト / 既定を切り替え |
+| Material You | 端末に追従 | 壁紙の色(`system_accent*` / `system_neutral*`)、アプリは `dynamic*ColorScheme` |
+| ハイコントラスト | 暗 | 黒と白、黄色のアクセント |
+| ミッドナイト | 暗 | 深い紺 |
+
+- ウィジェットの色は `WidgetPalette`(明・暗の2組)で持ち、`RemoteViews.setColorInt` / `setColorStateList(… night)` で渡す。
+  **明暗はホーム画面アプリが自分の設定で選ぶ**ので、「端末に合わせる」「Material You」はダークテーマを切り替えると再描画なしで追従する。
+  背景は `setBackgroundTintList` で塗るので角丸の形は保たれる。Material You の色は描画時に読むので、壁紙を変えたら次の再描画で反映
+- プロファイル色を明るい背景に置くときは濃く、暗い背景では明るくして見分けやすくする(`tintFor`)
+- **プロファイル色の上の文字・アイコン**(適用中のセル、アプリのアイコン、「適用中」バッジ、ショートカット)は `contentColorOn` で選ぶ:
+  ほとんどの色は白のまま、明るい色(黄色 #FFB300 など、輝度 0.5 超)だけ濃い色にする。白だと約 1.8:1 で読めなかった
+- ウィジェットの角丸は端末の値(`system_app_widget_background_radius` / `inner_radius`)に合わせ、`clipToOutline` で中身も切る
+- スキンによってはアプリが暗いのに端末が明るい(逆も)ので、ステータスバー・ナビゲーションバーのアイコン色もスキンに合わせる
+
 ## 6. パーミッション
 
 ```xml

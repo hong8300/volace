@@ -2,6 +2,7 @@ package com.hong.volace.data
 
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
+import androidx.core.graphics.ColorUtils
 import com.hong.volace.R
 
 /** Selectable accent colours. Stored on the profile as a plain ARGB int. */
@@ -52,3 +53,10 @@ enum class ProfileIcon(val key: String, @DrawableRes val res: Int, @StringRes va
 }
 
 val Profile.icon: ProfileIcon get() = ProfileIcon.fromKey(iconKey)
+
+/**
+ * Text / icon colour that stays readable on [background]: white on most profile colours, near
+ * black on light ones (white on amber #FFB300 is only about 1.8:1).
+ */
+fun contentColorOn(background: Int): Int =
+    if (ColorUtils.calculateLuminance(background) > 0.5) 0xFF1C1B1F.toInt() else 0xFFFFFFFF.toInt()
