@@ -92,6 +92,7 @@
     <string name="widget_not_applied">未適用・タップで適用</string>
     <string name="widget_tap_next">タップで次へ</string>
     <string name="widget_cd_drifted_suffix">（適用後に音量が変更されています）</string>
+    <string name="widget_cd_timer_suffix">（%1$s）</string>
     <string name="widget_cd_cycle">現在: %1$s%2$s。タップで次のプロファイル</string>
     <string name="widget_cd_active">%1$s（適用中）</string>
     <string name="widget_cd_drifted">%1$s（適用後に音量が変更されています）。タップで再適用</string>
@@ -212,4 +213,38 @@
     <string name="a11y_lower">%1$sを下げる</string>
     <string name="a11y_raise">%1$sを上げる</string>
     <string name="a11y_level">%2$d段階中%1$d</string>
+    <!-- Timed profiles (時間指定) -->
+    <string name="timer_button">時間指定</string>
+    <string name="timer_dialog_title">「%1$s」を時間指定で適用</string>
+    <string name="timer_how_long">どのくらい</string>
+    <plurals name="timer_minutes">
+        <item quantity="other">%1$d 分</item>
+    </plurals>
+    <plurals name="timer_hours">
+        <item quantity="other">%1$d 時間</item>
+    </plurals>
+    <string name="timer_until_time">時刻を指定…</string>
+    <string name="timer_until">%1$s まで</string>
+    <string name="timer_then">終わったら</string>
+    <string name="timer_previous_state">適用前の状態</string>
+    <string name="timer_restore_previous">適用前の状態に戻す</string>
+    <string name="timer_restore_profile">「%1$s」にする</string>
+    <string name="timer_summary">%1$s まで適用し、終わったら「%2$s」にします</string>
+    <string name="timer_started">「%1$s」を %2$s まで適用しました</string>
+    <string name="timer_restored">「%1$s」に戻しました</string>
+    <string name="timer_restore_failed">「%1$s」に戻せませんでした。もう一度お試しください</string>
+    <string name="timer_none">時間指定はもう終わっています</string>
+    <string name="timer_tomorrow">明日 %1$s</string>
+    <string name="timer_channel_running">時間指定で適用中</string>
+    <string name="timer_channel_due">時間指定の終了</string>
+    <string name="timer_running_title">「%1$s」を適用中</string>
+    <string name="timer_running_text">%1$s に「%2$s」にします</string>
+    <string name="timer_restore_now">今すぐ戻す</string>
+    <string name="timer_extend">30 分延長</string>
+    <string name="timer_extended">%1$s まで延長しました</string>
+    <string name="timer_due_title">時間になりました</string>
+    <string name="timer_due_text">タップすると「%1$s」にします</string>
+    <string name="timer_card">%1$s まで「%2$s」・終わったら「%3$s」</string>
+    <string name="timer_card_due">時間になりましたが、まだ「%1$s」にできていません</string>
+    <string name="timer_restore_due">戻す</string>
 </resources>

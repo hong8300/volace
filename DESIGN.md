@@ -350,6 +350,30 @@ AudioService は音量を `Settings.System`(`volume_music_speaker` 等、出力�
 - ウィジェットの角丸は端末の値(`system_app_widget_background_radius` / `inner_radius`)に合わせ、`clipToOutline` で中身も切る
 - スキンによってはアプリが暗いのに端末が明るい(逆も)ので、ステータスバー・ナビゲーションバーのアイコン色もスキンに合わせる
 
+### 5.14 時間指定(issue #24)
+
+「1 時間だけサイレント」のように、プロファイルを決めた時刻まで適用し、終わったら戻す(`timer/`)。
+
+- **入口**: 一覧の各行の「時間指定」と、選択画面(QS タイル・1×1 の「選ぶ」)の ⏱。
+  ダイアログで「30 分 / 1〜3 時間 / 時刻を指定」(デバッグ版のみ「1 分」も)と、終わったら「適用前の状態に戻す」か「別のプロファイルにする」を選ぶ
+- **記録**: タイマーは 1 つだけ。`volace_device.xml` の `timer` に JSON で保存(バックアップ対象外)。
+  開始直前の着信モード・音量(`DeviceVolumes`)と、その時「適用中」だったプロファイルも持つ。
+  タイマー中に別のタイマーを始めても、戻り先は最初のタイマーの前の状態のまま
+- **終了**: `AlarmManager.setExactAndAllowWhileIdle`(`USE_EXACT_ALARM`、インストール時に許可済み)で `TimerReceiver` を起こし、戻す
+- **Android 17 の制限への対応(8.7)**: バックグラウンドから音量を変えられるのは「表示中の Activity から開始した FGS が動いている間」だけ。
+  そこで開始は必ず表示中の画面(一覧・選択画面)から行い、その場で `TimerService`(FGS、`specialUse`)を開始して終了まで動かす。
+  この FGS が「今すぐ戻す」「30 分延長」付きの通知になる(カウントダウン表示)
+- **戻せなかったとき**: Android は無視したことを知らせないので、戻した後に読み直して確かめる(`matches`)。
+  違っていればタイマーを「時間切れ」のまま残し、「タップすると戻します」の通知を出す。通知のタップは透明な `TimerActionActivity`(表示中の Activity)で戻す。
+  再起動・アプリ更新の後(`TimerBootReceiver`)は FGS に能力が付かないので、この経路になりうる
+- **取り消し**: 手動で別のプロファイルを適用(一覧・ウィジェット・タイル・ショートカット)したら、タイマーは消して音量はそのまま。
+  編集の「保存して適用」は同じプロファイルの再適用なので消さない
+- **戻す内容**: 「適用前の状態」はプロファイルと同じ経路(`VolumeApplier.apply`)で書く。バイブ・サイレント中は着信音・通知・システムが
+  ミュートで 0 と読めるため、その 3 つは「変更しない」にして、着信音ありに戻ったときの音量を壊さない
+- **表示**: 現在の音量カードに「15:00 まで「マナー」・終わったら「適用前の状態」」と「30 分延長」「今すぐ戻す」。
+  ウィジェット(4×2 の状態行・4×1 の状態タイル・1×1 の説明)と QS タイルの副題に「15:00 まで」
+- **通知の許可**: 最初の時間指定のときに `POST_NOTIFICATIONS` を求める。断ってもタイマーは動く(通知が出ないだけ)
+
 ## 6. パーミッション
 
 ```xml
@@ -358,8 +382,21 @@ AudioService は音量を `Settings.System`(`volume_music_speaker` 等、出力�
 ```
 - どちらも通常権限(ランタイムダイアログなし)
 - ただし `ACCESS_NOTIFICATION_POLICY` は宣言だけでは不十分で、ユーザーが設定画面から個別に許可する必要がある(4.3のオンボーディングで対応)
-- フォアグラウンドサービス・Accessibility Service・Device Admin は不要(すべてタップ起点の即時処理のため)
+- Accessibility Service・Device Admin は不要
 - 外部での音量変更への追従(5.6)は JobScheduler の content-trigger で、追加の権限は要らない
+- 時間指定(5.14)のために次を追加:
+
+```xml
+<uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+<uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+<uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+<uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+```
+  - FGS は時間指定の間だけ動く(常駐はしない)。種類は該当するものが無いので `specialUse`
+  - `USE_EXACT_ALARM` は Google Play では時計・カレンダー系のアプリに限られる。Play で配布するなら
+    `SCHEDULE_EXACT_ALARM`(ユーザーが許可)に替える。許可が無ければ非正確なアラームになり、終了が数分遅れうる
+  - `POST_NOTIFICATIONS` は実行時に許可を求める(初回の時間指定のとき)
 
 ## 7. プロジェクト構成
 
@@ -540,6 +577,15 @@ adb shell dumpsys audio | grep -E "mHardeningOverride|AudioHardening"
   - 予定時刻に通知を出し、タップで適用する(通知のクリックはユーザー操作扱い)
   - targetSdk を 36 にとどめる(WIU 要件が無くなり「`SHORT_SERVICE` 以外の FGS」だけで足りる。サイドロードなので可能)
 - QS タイルのクリックがユーザー操作扱いかは文書に無いので、タイルからは表示中の Activity を経由して適用する
+
+**時間指定(#24、5.14)の確認(2026-10-04、`set-hardening enable` で強制した状態)**
+
+| 手順 | 結果 |
+|---|---|
+| 一覧で「通常」を 1 分の時間指定で適用(サイレント中から) | 適用され、FGS が開始(`Background started FGS: Allowed … uidState: TOP … allowWiu:12`)、正確なアラーム(`exactAllowReason=policy_permission`)が登録された |
+| ホームに戻り、画面を消して終了時刻を待つ | サイレント・メディア 8・アラーム 4・通話 9 に戻り、FGS も止まった。Hardening enforcement に Volace の記録なし |
+
+未確認: 再起動・アプリ更新後(能力の無い FGS)に戻せず通知になる経路、選択画面からの時間指定、ウィジェットの「〜まで」表示。
 
 ### 未検証(今後)
 - Pixel 11 Pro でのプロファイル適用とウィジェット配置(端末ロックのため未実施。

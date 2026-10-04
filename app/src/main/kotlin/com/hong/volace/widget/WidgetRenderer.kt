@@ -1,5 +1,8 @@
 package com.hong.volace.widget
 
+import com.hong.volace.timer.ProfileTimer
+import com.hong.volace.timer.ProfileTimers
+import com.hong.volace.timer.timerEndText
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
@@ -36,8 +39,21 @@ internal class WidgetState(
     val hasAccess: Boolean,
     /** Colours of the chosen skin (light and dark set). */
     val palette: WidgetPalette,
+    /** A timed profile running ("15:00 まで"), if any. */
+    val timer: ProfileTimer? = null,
 ) {
     val active: Profile? get() = profiles.firstOrNull { it.isActive }
+
+    /**
+     * "15:00 まで" while a timer runs on the profile in effect; "時間になりました" once it is due
+     * but Android refused to go back (the notification and the app offer to do it).
+     */
+    fun timerCaption(context: Context): String? {
+        val timer = timer ?: return null
+        if (active?.id != timer.profileId) return null
+        if (timer.isDue(System.currentTimeMillis())) return context.getString(R.string.timer_due_title)
+        return context.getString(R.string.timer_until, timerEndText(context, timer.endAt))
+    }
 
     companion object {
         suspend fun load(context: Context): WidgetState {
@@ -52,6 +68,7 @@ internal class WidgetState(
                 drifted = active != null && !applier.matches(active, device),
                 hasAccess = applier.hasAccess(),
                 palette = WidgetPalette.of(context, SkinStore.current(context)),
+                timer = ProfileTimers.current(context),
             )
         }
     }
@@ -168,7 +185,7 @@ object WidgetRenderer {
             when {
                 state.active == null -> context.getString(R.string.widget_not_applied)
                 look == CellLook.DRIFTED -> context.getString(R.string.changed)
-                else -> context.getString(R.string.widget_tap_next)
+                else -> state.timerCaption(context) ?: context.getString(R.string.widget_tap_next)
             },
         )
         views.color(R.id.cycle_caption, "setTextColor", state.palette) { colors ->
@@ -179,7 +196,10 @@ object WidgetRenderer {
             }
         }
         views.setOnClickPendingIntent(cell.root, cyclePendingIntent(context))
-        val status = if (look == CellLook.DRIFTED) context.getString(R.string.widget_cd_drifted_suffix) else ""
+        val status = when {
+            look == CellLook.DRIFTED -> context.getString(R.string.widget_cd_drifted_suffix)
+            else -> state.timerCaption(context)?.let { context.getString(R.string.widget_cd_timer_suffix, it) }.orEmpty()
+        }
         views.setContentDescription(cell.root, context.getString(R.string.widget_cd_cycle, current.name, status))
     }
 
@@ -314,7 +334,7 @@ object WidgetRenderer {
         if (panel == StatusPanel.FULL) {
             views.setTextViewText(
                 R.id.status_mode_text,
-                listOfNotNull(context.getString(ringerModeLabel(mode)), drift)
+                listOfNotNull(context.getString(ringerModeLabel(mode)), drift ?: state.timerCaption(context))
                     .joinToString(context.getString(R.string.list_separator)),
             )
             views.color(R.id.status_open, "setTextColor", p, accent)
@@ -325,7 +345,7 @@ object WidgetRenderer {
                 when {
                     !state.hasAccess -> context.getString(R.string.widget_caption_needs_access)
                     state.drifted -> context.getString(R.string.changed)
-                    else -> context.getString(R.string.widget_caption_details)
+                    else -> state.timerCaption(context) ?: context.getString(R.string.widget_caption_details)
                 },
             )
             views.color(R.id.status_caption, "setTextColor", p) { colors ->
@@ -344,7 +364,7 @@ object WidgetRenderer {
                 R.string.widget_cd_status,
                 context.getString(ringerModeLabel(mode)),
                 levels,
-                drift?.let { separator + it }.orEmpty(),
+                (drift ?: state.timerCaption(context))?.let { separator + it }.orEmpty(),
             ),
         )
     }

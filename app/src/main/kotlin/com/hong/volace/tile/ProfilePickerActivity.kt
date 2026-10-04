@@ -1,5 +1,13 @@
 package com.hong.volace.tile
 
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material3.IconButton
+import com.hong.volace.audio.ApplyResult
+import com.hong.volace.timer.timerEndText
+import com.hong.volace.ui.timer.TimedApplyDialog
+import com.hong.volace.ui.timer.TimerRequest
+import com.hong.volace.ui.timer.rememberTimerStarter
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -70,6 +78,7 @@ class ProfilePickerActivity : ComponentActivity() {
             VolaceTheme {
                 Picker(
                     onApply = ::apply,
+                    onTimerStarted = ::timerStarted,
                     onOpenApp = ::openApp,
                     onDismiss = ::finish,
                 )
@@ -86,6 +95,19 @@ class ProfilePickerActivity : ComponentActivity() {
         finish()
     }
 
+    private fun timerStarted(outcome: ProfileSwitcher.Outcome?, request: TimerRequest) {
+        WidgetRefresher.request(this)
+        if (outcome != null) {
+            val message = if (outcome.result == ApplyResult.Applied) {
+                getString(R.string.timer_started, outcome.profile.name, timerEndText(this, request.endAt))
+            } else {
+                outcome.result.message(this, outcome.profile.name)
+            }
+            Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+        }
+        finish()
+    }
+
     private fun openApp() {
         startActivity(MainActivity.launcherIntent(this))
         finish()
@@ -95,10 +117,24 @@ class ProfilePickerActivity : ComponentActivity() {
 @Composable
 private fun Picker(
     onApply: suspend (Profile) -> Unit,
+    onTimerStarted: (ProfileSwitcher.Outcome?, TimerRequest) -> Unit,
     onOpenApp: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     var state by remember { mutableStateOf<WidgetState?>(null) }
+    var timed by remember { mutableStateOf<Profile?>(null) }
+    val startTimer = rememberTimerStarter { outcome, request -> onTimerStarted(outcome, request) }
+    timed?.let { profile ->
+        TimedApplyDialog(
+            profile = profile,
+            profiles = state?.profiles.orEmpty(),
+            onConfirm = { request ->
+                timed = null
+                startTimer(request)
+            },
+            onDismiss = { timed = null },
+        )
+    }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     LaunchedEffect(Unit) {
@@ -151,7 +187,11 @@ private fun Picker(
                         verticalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
                         current.profiles.forEach { profile ->
-                            PickerRow(profile, drifted = profile.isActive && current.drifted) {
+                            PickerRow(
+                                profile,
+                                drifted = profile.isActive && current.drifted,
+                                onTimed = { timed = profile },
+                            ) {
                                 scope.launch { onApply(profile) }
                             }
                         }
@@ -170,7 +210,7 @@ private fun Picker(
 }
 
 @Composable
-private fun PickerRow(profile: Profile, drifted: Boolean, onClick: () -> Unit) {
+private fun PickerRow(profile: Profile, drifted: Boolean, onTimed: () -> Unit, onClick: () -> Unit) {
     val accent = Color(profile.colorArgb)
     val active = profile.isActive && !drifted
     Surface(
@@ -179,7 +219,7 @@ private fun PickerRow(profile: Profile, drifted: Boolean, onClick: () -> Unit) {
         modifier = Modifier.fillMaxWidth(),
     ) {
         Row(
-            modifier = Modifier.clickable(onClick = onClick).padding(horizontal = 12.dp, vertical = 10.dp),
+            modifier = Modifier.clickable(onClick = onClick).padding(start = 12.dp, end = 4.dp, top = 6.dp, bottom = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
@@ -204,6 +244,13 @@ private fun PickerRow(profile: Profile, drifted: Boolean, onClick: () -> Unit) {
             when {
                 active -> Text(stringResource(R.string.active), color = accent, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                 drifted -> Text(stringResource(R.string.changed), color = accent, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            }
+            IconButton(onClick = onTimed) {
+                Icon(
+                    Icons.Filled.Timer,
+                    contentDescription = stringResource(R.string.timer_dialog_title, profile.name),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
     }

@@ -46,6 +46,17 @@ import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
 import com.hong.volace.R
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.setValue
+import com.hong.volace.timer.timerEndText
+import kotlinx.coroutines.delay
 
 /** Hidden AudioManager broadcasts; stable for years and the only push signal for volume. */
 private const val ACTION_VOLUME_CHANGED = "android.media.VOLUME_CHANGED_ACTION"
@@ -92,12 +103,18 @@ fun rememberDeviceVolumes(applier: VolumeApplier): State<DeviceVolumes> {
  * with the volume keys (or anything else) is visible instead of the list still claiming the
  * profile is in effect.
  */
+/** A running timed profile as the card shows it ("15:00 まで「マナー」"). */
+data class TimerLine(val profileName: String, val restoreName: String, val endAt: Long)
+
 @Composable
 fun CurrentVolumeCard(
     device: DeviceVolumes,
     maxes: Map<VolumeStream, Int>,
     active: Profile?,
     drifted: Boolean,
+    timer: TimerLine? = null,
+    onRestoreTimer: () -> Unit = {},
+    onExtendTimer: () -> Unit = {},
 ) {
     val accent = active?.let { Color(it.colorArgb) } ?: MaterialTheme.colorScheme.primary
     Surface(
@@ -135,6 +152,10 @@ fun CurrentVolumeCard(
                     modifier = Modifier.padding(top = 2.dp),
                 )
             }
+            if (timer != null) {
+                Spacer(Modifier.height(8.dp))
+                TimerPanel(timer, accent, onRestoreTimer, onExtendTimer)
+            }
             Spacer(Modifier.height(6.dp))
             // One column once the text is enlarged; two columns of long names would not fit.
             val columns = if (LocalDensity.current.fontScale >= 1.3f) 1 else 2
@@ -149,6 +170,49 @@ fun CurrentVolumeCard(
                             modifier = Modifier.weight(1f),
                         )
                     }
+                }
+            }
+        }
+    }
+}
+
+/** The timer, and the two things one may want from it: end it now, or give it more time. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun TimerPanel(timer: TimerLine, accent: Color, onRestore: () -> Unit, onExtend: () -> Unit) {
+    val context = LocalContext.current
+    // Redrawn once the end passes. Normally the timer is gone by then; one still here is waiting
+    // for the user to go back (Android refused to do it in the background).
+    var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(timer.endAt) {
+        val wait = timer.endAt - System.currentTimeMillis()
+        if (wait > 0) delay(wait + 1_000)
+        now = System.currentTimeMillis()
+    }
+    val due = now >= timer.endAt
+    Surface(
+        shape = RoundedCornerShape(14.dp),
+        color = accent.copy(alpha = 0.12f),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(modifier = Modifier.padding(start = 12.dp, end = 6.dp, top = 8.dp, bottom = 2.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Filled.Timer, contentDescription = null, tint = accent, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    if (due) stringResource(R.string.timer_card_due, timer.restoreName)
+                    else stringResource(R.string.timer_card, timerEndText(context, timer.endAt), timer.profileName, timer.restoreName),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+            ) {
+                if (!due) TextButton(onClick = onExtend) { Text(stringResource(R.string.timer_extend)) }
+                TextButton(onClick = onRestore) {
+                    Text(stringResource(if (due) R.string.timer_restore_due else R.string.timer_restore_now))
                 }
             }
         }
