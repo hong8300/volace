@@ -36,6 +36,7 @@ import androidx.compose.material.icons.filled.VolumeOff
 import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomAppBar
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
@@ -95,7 +96,10 @@ fun ProfileListScreen(
     message: String? = null,
     onMessageShown: () -> Unit = {},
 ) {
-    val profiles by dao.observeAll().collectAsState(initial = emptyList())
+    // null until the first query returns, so "no profiles" is not flashed while loading. The flow
+    // is created once: calling observeAll() on every recomposition restarted the query each time.
+    val loaded by remember(dao) { dao.observeAll() }.collectAsState(initial = null)
+    val profiles = loaded.orEmpty()
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     var reorderMode by remember { mutableStateOf(false) }
@@ -205,14 +209,25 @@ fun ProfileListScreen(
                     },
                 )
             }
-            if (profiles.isEmpty()) {
+            if (loaded?.isEmpty() == true) {
                 item {
-                    Text(
-                        "「プロファイルを追加」から作成してください。",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(24.dp),
-                    )
+                    Column(
+                        modifier = Modifier.fillMaxWidth().padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Text(
+                            "プロファイルがありません。",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Spacer(Modifier.height(12.dp))
+                        // A new profile starts from the device's current volumes.
+                        Button(onClick = onAddProfile) {
+                            Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text("今の音量でプロファイルを作成")
+                        }
+                    }
                 }
             }
         }

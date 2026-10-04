@@ -22,6 +22,16 @@ interface ProfileDao {
     @Query("SELECT COUNT(*) FROM profiles")
     suspend fun count(): Int
 
+    /** Where a new profile goes: after the last one, even when some in between were deleted. */
+    @Query("SELECT COALESCE(MAX(orderIndex), -1) + 1 FROM profiles")
+    suspend fun nextOrderIndex(): Int
+
+    /** Checks and inserts in one transaction, so two launches racing cannot seed twice. */
+    @Transaction
+    suspend fun insertIfEmpty(profiles: List<Profile>) {
+        if (count() == 0) insertAll(profiles)
+    }
+
     @Insert
     suspend fun insert(profile: Profile): Long
 
