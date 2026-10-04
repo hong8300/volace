@@ -10,6 +10,7 @@ import android.graphics.PorterDuff
 import android.graphics.PorterDuffColorFilter
 import android.graphics.drawable.Icon
 import android.net.Uri
+import com.hong.volace.R
 import com.hong.volace.data.Profile
 import com.hong.volace.data.VolaceDatabase
 import com.hong.volace.data.icon
@@ -45,7 +46,7 @@ object ProfileShortcuts {
         // A pinned shortcut to a deleted profile stays on the home screen; grey it out.
         val alive = profiles.map { ID_PREFIX + it.id }.toSet()
         val gone = manager.pinnedShortcuts.map { it.id }.filter { it.startsWith(ID_PREFIX) && it !in alive }
-        if (gone.isNotEmpty()) manager.disableShortcuts(gone, "削除されたプロファイルです")
+        if (gone.isNotEmpty()) manager.disableShortcuts(gone, app.getString(R.string.shortcut_deleted))
         // Pinned ones that still exist pick up a new name / icon too.
         val pinnedAlive = manager.pinnedShortcuts.map { it.id }.filter { it in alive }.toSet()
         val updates = profiles.filter { ID_PREFIX + it.id in pinnedAlive }.map { shortcut(app, it, 0) }
@@ -57,7 +58,7 @@ object ProfileShortcuts {
     private fun shortcut(context: Context, profile: Profile, rank: Int): ShortcutInfo =
         ShortcutInfo.Builder(context, ID_PREFIX + profile.id)
             .setShortLabel(profile.name)
-            .setLongLabel("「${profile.name}」を適用")
+            .setLongLabel(context.getString(R.string.shortcut_apply, profile.name))
             .setIcon(icon(context, profile))
             .setRank(rank)
             .setIntent(

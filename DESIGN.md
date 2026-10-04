@@ -311,6 +311,20 @@ AudioService は音量を `Settings.System`(`volume_music_speaker` 等、出力�
   端末ごとの状態(`volace_device.xml`: ランチャーのショートカットの更新記録)は除外する。
   復元した記録が残っていると、新しい端末でショートカットを登録しなくなるため
 
+### 5.12 多言語対応(issue #19)
+
+画面・ウィジェット・タイル・ショートカット・メッセージの文言はすべて `strings.xml` にある。
+**日本語が既定(`values/`)、英語が `values-en/`**。Android 13 のアプリ別の言語設定(設定 › アプリ › Volace › 言語)にも対応
+(`locales_config.xml`)。追加・変更するときは両方のファイルを揃える。
+
+- `VolumeStream.label` / `ProfileIcon.label` / `ringerModeLabel()` は文字列リソース ID を返す
+- 既定プロファイルの名前は、作られたときの言語で保存される(あとから言語を変えても名前は変わらない)
+- バックアップのエラーは `FormatException(reason = R.string.…, args)` で持ち、表示するときに訳す
+- **ウィジェットの文言はすべて Volace 側で設定する**: レイアウトに書いた `@string` はホーム画面アプリが
+  *端末全体の言語* で解決するため、Volace だけ別の言語にすると日英が混ざる。見出しやボタンにも id を付けて `setTextViewText` する
+  (レイアウトの `@string` はウィジェット選択画面のプレビュー用)。音量名の欄の幅も言語で変わるので `setViewLayoutWidth` で設定する
+- 英語の音量名(Notifications など)は長いので、ラベル幅を `dimens.xml` で言語ごとに持つ
+
 ## 6. パーミッション
 
 ```xml

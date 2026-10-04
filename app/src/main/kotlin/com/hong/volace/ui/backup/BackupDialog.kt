@@ -35,6 +35,9 @@ import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import com.hong.volace.R
 
 /**
  * Save every profile to a JSON file, or read one back (adding to or replacing the list). Files go
@@ -57,8 +60,8 @@ fun BackupDialog(
             val message = runCatching {
                 val profiles = dao.getAllOnce()
                 write(context, uri, ProfileBackup.toJson(profiles))
-                "${profiles.size} 件のプロファイルを保存しました"
-            }.getOrElse { "保存できませんでした（${it.message}）" }
+                context.resources.getQuantityString(R.plurals.backup_saved, profiles.size, profiles.size)
+            }.getOrElse { context.getString(R.string.backup_save_failed, it.message.orEmpty()) }
             onMessage(message)
             onDismiss()
         }
@@ -70,14 +73,15 @@ fun BackupDialog(
             runCatching { ProfileBackup.fromJson(read(context, uri)) }
                 .onSuccess { profiles ->
                     if (profiles.isEmpty()) {
-                        onMessage("ファイルにプロファイルがありません")
+                        onMessage(context.getString(R.string.backup_file_empty))
                         onDismiss()
                     } else {
                         pending = profiles
                     }
                 }
                 .onFailure {
-                    onMessage("読み込めませんでした: ${it.message}")
+                    val reason = (it as? ProfileBackup.FormatException)?.describe(context) ?: it.message.orEmpty()
+                    onMessage(context.getString(R.string.backup_read_failed, reason))
                     onDismiss()
                 }
         }
@@ -87,22 +91,17 @@ fun BackupDialog(
     if (toImport != null) {
         AlertDialog(
             onDismissRequest = onDismiss,
-            title = { Text("${toImport.size} 件のプロファイルを読み込む") },
-            text = {
-                Text(
-                    "今のプロファイルに追加するか、すべて置き換えるかを選んでください。" +
-                        "音量はこの端末の範囲に合わせます。読み込んだだけでは適用しません。",
-                )
-            },
+            title = { Text(pluralStringResource(R.plurals.backup_import_title, toImport.size, toImport.size)) },
+            text = { Text(stringResource(R.string.backup_import_body)) },
             confirmButton = {
                 TextButton(onClick = {
                     scope.launch { onMessage(import(dao, volumeApplier, toImport, replace = true)); onDismiss() }
-                }) { Text("置き換える", color = MaterialTheme.colorScheme.error) }
+                }) { Text(stringResource(R.string.backup_replace), color = MaterialTheme.colorScheme.error) }
             },
             dismissButton = {
                 TextButton(onClick = {
                     scope.launch { onMessage(import(dao, volumeApplier, toImport, replace = false)); onDismiss() }
-                }) { Text("追加する") }
+                }) { Text(stringResource(R.string.backup_add)) }
             },
         )
         return
@@ -110,19 +109,19 @@ fun BackupDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("バックアップ") },
+        title = { Text(stringResource(R.string.backup)) },
         text = {
             Column {
-                Choice("ファイルに保存", "すべてのプロファイルを JSON ファイルに書き出します") {
+                Choice(stringResource(R.string.backup_save), stringResource(R.string.backup_save_desc)) {
                     save.launch("volace-profiles-${LocalDate.now().format(DateTimeFormatter.BASIC_ISO_DATE)}.json")
                 }
-                Choice("ファイルから復元", "保存したファイルからプロファイルを読み込みます") {
+                Choice(stringResource(R.string.backup_restore), stringResource(R.string.backup_restore_desc)) {
                     // Some providers label JSON as plain text or as a generic binary.
                     open.launch(arrayOf("application/json", "text/plain", "application/octet-stream"))
                 }
             }
         },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("閉じる") } },
+        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.close)) } },
     )
 }
 
@@ -155,7 +154,12 @@ private suspend fun import(
     val prepared = profiles.mapIndexed { i, p -> ranges.normalize(p.copy(orderIndex = first + i)) }
     if (replace) dao.replaceAll(prepared) else dao.insertAll(prepared)
     WidgetRefresher.request(volumeApplier.context)
-    return if (replace) "${prepared.size} 件のプロファイルに置き換えました" else "${prepared.size} 件のプロファイルを追加しました"
+    val res = volumeApplier.context.resources
+    return res.getQuantityString(
+        if (replace) R.plurals.backup_replaced else R.plurals.backup_added,
+        prepared.size,
+        prepared.size,
+    )
 }
 
 private suspend fun write(context: Context, uri: Uri, text: String) = withContext(Dispatchers.IO) {

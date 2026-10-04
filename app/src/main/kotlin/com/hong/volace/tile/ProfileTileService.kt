@@ -51,9 +51,9 @@ class ProfileTileService : TileService() {
         val active = state.active
         tile.label = active?.name ?: getString(R.string.app_name)
         tile.subtitle = when {
-            !state.hasAccess -> "許可が必要"
-            active == null -> "タップして選ぶ"
-            state.drifted -> "変更あり"
+            !state.hasAccess -> getString(R.string.tile_needs_access)
+            active == null -> getString(R.string.tile_tap_to_pick)
+            state.drifted -> getString(R.string.changed)
             else -> getString(R.string.app_name)
         }
         tile.icon = Icon.createWithResource(this, active?.icon?.res ?: R.drawable.ic_profile_volume_up)

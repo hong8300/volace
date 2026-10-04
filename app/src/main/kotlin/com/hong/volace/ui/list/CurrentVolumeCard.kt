@@ -42,6 +42,9 @@ import com.hong.volace.audio.VolumeApplier
 import com.hong.volace.audio.VolumeStream
 import com.hong.volace.audio.ringerModeLabel
 import com.hong.volace.data.Profile
+import androidx.compose.ui.res.dimensionResource
+import androidx.compose.ui.res.stringResource
+import com.hong.volace.R
 
 /** Hidden AudioManager broadcasts; stable for years and the only push signal for volume. */
 private const val ACTION_VOLUME_CHANGED = "android.media.VOLUME_CHANGED_ACTION"
@@ -104,7 +107,7 @@ fun CurrentVolumeCard(
         Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    "現在の音量",
+                    stringResource(R.string.current_volume),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.weight(1f),
@@ -117,14 +120,14 @@ fun CurrentVolumeCard(
                 )
                 Spacer(Modifier.width(4.dp))
                 Text(
-                    ringerModeLabel(device.ringerMode),
+                    stringResource(ringerModeLabel(device.ringerMode)),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             if (active != null) {
                 Text(
-                    text = if (drifted) "「${active.name}」の適用後に変更されています" else "「${active.name}」を適用中",
+                    text = stringResource(if (drifted) R.string.card_drifted else R.string.card_active, active.name),
                     style = MaterialTheme.typography.bodySmall,
                     fontWeight = if (drifted) FontWeight.SemiBold else FontWeight.Normal,
                     color = if (drifted) accent else MaterialTheme.colorScheme.onSurfaceVariant,
@@ -136,7 +139,7 @@ fun CurrentVolumeCard(
                 Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     pair.forEach { stream ->
                         LevelBar(
-                            label = stream.label,
+                            label = stringResource(stream.label),
                             value = device.levelOf(stream),
                             max = maxes[stream] ?: 1,
                             accent = accent,
@@ -159,7 +162,7 @@ private fun LevelBar(label: String, value: Int, max: Int, accent: Color, modifie
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
-            modifier = Modifier.width(52.dp),
+            modifier = Modifier.width(dimensionResource(R.dimen.level_label_width)),
         )
         Box(
             modifier = Modifier

@@ -59,7 +59,7 @@
                 android:fontFamily="sans-serif-medium"
                 android:textColor="#FFFFFFFF"
                 android:textSize="11sp"
-                android:text="通常" />
+                android:text="@string/preview_profile_1" />
         </LinearLayout>
     </FrameLayout>
 
@@ -115,7 +115,7 @@
                 android:fontFamily="sans-serif-medium"
                 android:textColor="#FFFFFFFF"
                 android:textSize="11sp"
-                android:text="就寝" />
+                android:text="@string/preview_profile_2" />
         </LinearLayout>
     </FrameLayout>
 
@@ -171,7 +171,7 @@
                 android:fontFamily="sans-serif-medium"
                 android:textColor="#FFFFFFFF"
                 android:textSize="11sp"
-                android:text="音楽" />
+                android:text="@string/preview_profile_3" />
         </LinearLayout>
     </FrameLayout>
 
@@ -227,7 +227,7 @@
                 android:fontFamily="sans-serif-medium"
                 android:textColor="#FFFFFFFF"
                 android:textSize="11sp"
-                android:text="仕事" />
+                android:text="@string/preview_profile_4" />
         </LinearLayout>
     </FrameLayout>
 
@@ -506,6 +506,6 @@
             android:fontFamily="sans-serif-medium"
             android:textColor="#FFDCDCE6"
             android:textSize="10sp"
-            android:text="音量詳細" />
+            android:text="@string/widget_caption_details" />
     </LinearLayout>
 </LinearLayout>

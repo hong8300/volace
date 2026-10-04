@@ -28,6 +28,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.hong.volace.R
+import androidx.compose.ui.res.stringResource
 
 @Composable
 fun OnboardingScreen() {
@@ -53,14 +54,13 @@ fun OnboardingScreen() {
         }
         Spacer(Modifier.height(24.dp))
         Text(
-            "Volace を使うには",
+            stringResource(R.string.onboarding_title),
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold,
         )
         Spacer(Modifier.height(12.dp))
         Text(
-            "着信音・通知の音量を変更するには「サイレント モード（Do Not Disturb）へのアクセス」" +
-                "の許可が必要です。\n\n次の画面のリストから Volace を選び、スイッチをオンにしてください。",
+            stringResource(R.string.onboarding_body),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
@@ -72,11 +72,11 @@ fun OnboardingScreen() {
             },
             modifier = Modifier.fillMaxWidth().height(52.dp),
         ) {
-            Text("設定を開く", fontWeight = FontWeight.SemiBold)
+            Text(stringResource(R.string.onboarding_open_settings), fontWeight = FontWeight.SemiBold)
         }
         Spacer(Modifier.height(10.dp))
         Text(
-            "許可後、この画面に戻ると自動で進みます。",
+            stringResource(R.string.onboarding_hint),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

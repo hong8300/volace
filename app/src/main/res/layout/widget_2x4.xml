@@ -28,6 +28,7 @@
             android:gravity="center_vertical">
 
             <TextView
+                android:id="@+id/status_title"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
@@ -35,7 +36,7 @@
                 android:fontFamily="sans-serif-medium"
                 android:textColor="#FFFFFFFF"
                 android:textSize="12sp"
-                android:text="現在の音量" />
+                android:text="@string/current_volume" />
 
             <TextView
                 android:id="@+id/status_open"
@@ -45,7 +46,7 @@
                 android:fontFamily="sans-serif-medium"
                 android:textColor="#FF8FB8FF"
                 android:textSize="11sp"
-                android:text="アプリを開く ›" />
+                android:text="@string/widget_open_app" />
         </LinearLayout>
 
         <LinearLayout
@@ -74,7 +75,7 @@
                 android:fontFamily="sans-serif-medium"
                 android:textColor="#FFDCDCE6"
                 android:textSize="11sp"
-                android:text="着信音あり" />
+                android:text="@string/ringer_normal" />
         </LinearLayout>
 
         <LinearLayout
@@ -97,7 +98,7 @@
                     android:maxLines="1"
                     android:textColor="#B3DCDCE6"
                     android:textSize="10sp"
-                    android:text="着信音" />
+                    android:text="@string/stream_ring" />
 
                 <FrameLayout
                     android:layout_width="0dp"
@@ -148,7 +149,7 @@
                     android:maxLines="1"
                     android:textColor="#B3DCDCE6"
                     android:textSize="10sp"
-                    android:text="通知" />
+                    android:text="@string/stream_notification" />
 
                 <FrameLayout
                     android:layout_width="0dp"
@@ -204,7 +205,7 @@
                     android:maxLines="1"
                     android:textColor="#B3DCDCE6"
                     android:textSize="10sp"
-                    android:text="メディア" />
+                    android:text="@string/stream_media" />
 
                 <FrameLayout
                     android:layout_width="0dp"
@@ -255,7 +256,7 @@
                     android:maxLines="1"
                     android:textColor="#B3DCDCE6"
                     android:textSize="10sp"
-                    android:text="アラーム" />
+                    android:text="@string/stream_alarm" />
 
                 <FrameLayout
                     android:layout_width="0dp"
@@ -311,7 +312,7 @@
                     android:maxLines="1"
                     android:textColor="#B3DCDCE6"
                     android:textSize="10sp"
-                    android:text="通話" />
+                    android:text="@string/stream_voice_call" />
 
                 <FrameLayout
                     android:layout_width="0dp"
@@ -362,7 +363,7 @@
                     android:maxLines="1"
                     android:textColor="#B3DCDCE6"
                     android:textSize="10sp"
-                    android:text="システム" />
+                    android:text="@string/stream_system" />
 
                 <FrameLayout
                     android:layout_width="0dp"
@@ -459,7 +460,7 @@
                 android:fontFamily="sans-serif-medium"
                 android:textColor="#FFFFFFFF"
                 android:textSize="11sp"
-                android:text="通常" />
+                android:text="@string/preview_profile_1" />
         </LinearLayout>
     </FrameLayout>
 
@@ -515,7 +516,7 @@
                 android:fontFamily="sans-serif-medium"
                 android:textColor="#FFFFFFFF"
                 android:textSize="11sp"
-                android:text="就寝" />
+                android:text="@string/preview_profile_2" />
         </LinearLayout>
     </FrameLayout>
 
@@ -571,7 +572,7 @@
                 android:fontFamily="sans-serif-medium"
                 android:textColor="#FFFFFFFF"
                 android:textSize="11sp"
-                android:text="音楽" />
+                android:text="@string/preview_profile_3" />
         </LinearLayout>
     </FrameLayout>
 
@@ -627,7 +628,7 @@
                 android:fontFamily="sans-serif-medium"
                 android:textColor="#FFFFFFFF"
                 android:textSize="11sp"
-                android:text="仕事" />
+                android:text="@string/preview_profile_4" />
         </LinearLayout>
     </FrameLayout>
     </LinearLayout>
@@ -691,7 +692,7 @@
                 android:fontFamily="sans-serif-medium"
                 android:textColor="#FFFFFFFF"
                 android:textSize="11sp"
-                android:text="運転" />
+                android:text="@string/preview_profile_5" />
         </LinearLayout>
     </FrameLayout>
 
@@ -747,7 +748,7 @@
                 android:fontFamily="sans-serif-medium"
                 android:textColor="#FFFFFFFF"
                 android:textSize="11sp"
-                android:text="自宅" />
+                android:text="@string/preview_profile_6" />
         </LinearLayout>
     </FrameLayout>
 
@@ -803,7 +804,7 @@
                 android:fontFamily="sans-serif-medium"
                 android:textColor="#FFFFFFFF"
                 android:textSize="11sp"
-                android:text="会議" />
+                android:text="@string/preview_profile_7" />
         </LinearLayout>
     </FrameLayout>
 
@@ -859,7 +860,7 @@
                 android:fontFamily="sans-serif-medium"
                 android:textColor="#FFFFFFFF"
                 android:textSize="11sp"
-                android:text="屋外" />
+                android:text="@string/preview_profile_8" />
         </LinearLayout>
     </FrameLayout>
     </LinearLayout>

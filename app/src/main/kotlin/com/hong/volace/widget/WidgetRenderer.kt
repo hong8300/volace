@@ -7,6 +7,7 @@ import android.graphics.Color
 import android.media.AudioManager
 import android.net.Uri
 import android.util.SizeF
+import android.util.TypedValue
 import android.view.View
 import android.widget.RemoteViews
 import com.hong.volace.MainActivity
@@ -110,11 +111,13 @@ object WidgetRenderer {
     ): RemoteViews {
         val views = RemoteViews(context.packageName, layout)
         if (layout == R.layout.widget_1x1_wide) {
+            views.setTextViewText(R.id.pick_title, context.getString(R.string.widget_pick))
+            views.setTextViewText(R.id.pick_subtitle, context.getString(R.string.widget_pick_sub))
             views.setOnClickPendingIntent(
                 R.id.pick_button,
                 if (state.hasAccess) pickerPendingIntent(context) else openAppPendingIntent(context),
             )
-            views.setContentDescription(R.id.pick_button, "一覧からプロファイルを選ぶ")
+            views.setContentDescription(R.id.pick_button, context.getString(R.string.widget_pick_cd))
         }
         if (style.status != StatusPanel.NONE) {
             views.setViewVisibility(R.id.status_panel, if (showStatus) View.VISIBLE else View.GONE)
@@ -136,19 +139,19 @@ object WidgetRenderer {
         paintCell(views, cell, current, look)
         if (!state.hasAccess) {
             // The only place a 1×1 can say why taps stopped working.
-            views.setTextViewText(cell.name, "許可が必要")
-            views.setTextViewText(R.id.cycle_caption, "タップして開く")
+            views.setTextViewText(cell.name, context.getString(R.string.widget_needs_access))
+            views.setTextViewText(R.id.cycle_caption, context.getString(R.string.widget_tap_to_open))
             views.setOnClickPendingIntent(cell.root, openAppPendingIntent(context))
-            views.setContentDescription(cell.root, NEEDS_ACCESS)
+            views.setContentDescription(cell.root, context.getString(R.string.widget_cd_needs_access))
             return
         }
         // Spelled out under the name: what the cell shows, and what a tap does.
         views.setTextViewText(
             R.id.cycle_caption,
             when {
-                state.active == null -> "未適用・タップで適用"
-                look == CellLook.DRIFTED -> "変更あり"
-                else -> "タップで次へ"
+                state.active == null -> context.getString(R.string.widget_not_applied)
+                look == CellLook.DRIFTED -> context.getString(R.string.changed)
+                else -> context.getString(R.string.widget_tap_next)
             },
         )
         views.setTextColor(
@@ -160,8 +163,8 @@ object WidgetRenderer {
             },
         )
         views.setOnClickPendingIntent(cell.root, cyclePendingIntent(context))
-        val status = if (look == CellLook.DRIFTED) "（適用後に音量が変更されています）" else ""
-        views.setContentDescription(cell.root, "現在: ${current.name}$status。タップで次のプロファイル")
+        val status = if (look == CellLook.DRIFTED) context.getString(R.string.widget_cd_drifted_suffix) else ""
+        views.setContentDescription(cell.root, context.getString(R.string.widget_cd_cycle, current.name, status))
     }
 
     private fun renderGrid(
@@ -197,16 +200,16 @@ object WidgetRenderer {
             paintCell(views, cell, profile, look)
             if (!state.hasAccess) {
                 views.setOnClickPendingIntent(cell.root, openAppPendingIntent(context))
-                views.setContentDescription(cell.root, NEEDS_ACCESS)
+                views.setContentDescription(cell.root, context.getString(R.string.widget_cd_needs_access))
                 continue
             }
             views.setOnClickPendingIntent(cell.root, applyPendingIntent(context, profile.id))
             views.setContentDescription(
                 cell.root,
                 when (look) {
-                    CellLook.ACTIVE -> "${profile.name}（適用中）"
-                    CellLook.DRIFTED -> "${profile.name}（適用後に音量が変更されています）。タップで再適用"
-                    CellLook.IDLE -> "${profile.name} を適用"
+                    CellLook.ACTIVE -> context.getString(R.string.widget_cd_active, profile.name)
+                    CellLook.DRIFTED -> context.getString(R.string.widget_cd_drifted, profile.name)
+                    CellLook.IDLE -> context.getString(R.string.widget_cd_apply, profile.name)
                 },
             )
         }
@@ -220,10 +223,10 @@ object WidgetRenderer {
         views.setViewVisibility(cell.ring, View.GONE)
         views.setImageViewResource(cell.icon, ProfileIcon.DEFAULT.res)
         views.setInt(cell.icon, "setColorFilter", IDLE_TEXT)
-        views.setTextViewText(cell.name, "追加")
+        views.setTextViewText(cell.name, context.getString(R.string.widget_add))
         views.setTextColor(cell.name, IDLE_TEXT)
         views.setOnClickPendingIntent(cell.root, openAppPendingIntent(context))
-        views.setContentDescription(cell.root, "Volace を開いてプロファイルを作成")
+        views.setContentDescription(cell.root, context.getString(R.string.widget_cd_create))
         for (index in 1 until CELLS.size) {
             views.setViewVisibility(CELLS[index].root, View.GONE)
         }
@@ -245,6 +248,13 @@ object WidgetRenderer {
         val barColor = active?.let { lighten(it.colorArgb, 0.25f) } ?: NEUTRAL_BAR
         val mode = state.device.ringerMode
 
+        if (panel == StatusPanel.FULL) {
+            // Set from here rather than left to the layout: the launcher resolves layout strings in
+            // the system language, which differs from the app's own when one is chosen for Volace.
+            views.setTextViewText(R.id.status_title, context.getString(R.string.current_volume))
+            views.setTextViewText(R.id.status_open, context.getString(R.string.widget_open_app))
+        }
+        val labelWidth = context.resources.getDimension(R.dimen.widget_level_label_width)
         views.setImageViewResource(
             R.id.status_mode_icon,
             if (state.hasAccess) ringerModeIcon(mode) else R.drawable.ic_widget_warning,
@@ -253,21 +263,28 @@ object WidgetRenderer {
             val refs = STATS[index]
             val max = (state.maxes[stream] ?: 1).coerceAtLeast(1)
             val level = state.device.levelOf(stream).coerceIn(0, max)
-            views.setTextViewText(refs.label, if (panel == StatusPanel.FULL) stream.label else stream.shortLabel)
+            views.setTextViewText(
+                refs.label,
+                if (panel == StatusPanel.FULL) context.getString(stream.label) else stream.shortLabel,
+            )
+            if (panel == StatusPanel.FULL) {
+                views.setViewLayoutWidth(refs.label, labelWidth, TypedValue.COMPLEX_UNIT_PX)
+            }
             views.setInt(refs.fill, "setImageLevel", level * MAX_LEVEL / max)
             views.setInt(refs.fill, "setColorFilter", barColor)
             if (panel == StatusPanel.FULL) views.setTextViewText(refs.value, level.toString())
         }
 
         val drift = when {
-            !state.hasAccess -> "許可が必要です（タップして開く）"
-            state.drifted && active != null -> "「${active.name}」から変更あり"
+            !state.hasAccess -> context.getString(R.string.widget_needs_access_open)
+            state.drifted && active != null -> context.getString(R.string.widget_drift, active.name)
             else -> null
         }
         if (panel == StatusPanel.FULL) {
             views.setTextViewText(
                 R.id.status_mode_text,
-                listOfNotNull(ringerModeLabel(mode), drift).joinToString("・"),
+                listOfNotNull(context.getString(ringerModeLabel(mode)), drift)
+                    .joinToString(context.getString(R.string.list_separator)),
             )
             views.setTextColor(R.id.status_open, barColor)
         } else {
@@ -275,9 +292,9 @@ object WidgetRenderer {
             views.setTextViewText(
                 R.id.status_caption,
                 when {
-                    !state.hasAccess -> "要許可"
-                    state.drifted -> "変更あり"
-                    else -> "音量詳細"
+                    !state.hasAccess -> context.getString(R.string.widget_caption_needs_access)
+                    state.drifted -> context.getString(R.string.changed)
+                    else -> context.getString(R.string.widget_caption_details)
                 },
             )
             views.setTextColor(
@@ -287,12 +304,18 @@ object WidgetRenderer {
         }
 
         views.setOnClickPendingIntent(R.id.status_panel, openAppPendingIntent(context))
-        val levels = VolumeStream.entries.joinToString("、") { stream ->
-            "${stream.label} ${state.device.levelOf(stream)}/${state.maxes[stream] ?: 0}"
+        val separator = context.getString(R.string.detail_separator)
+        val levels = VolumeStream.entries.joinToString(separator) { stream ->
+            "${context.getString(stream.label)} ${state.device.levelOf(stream)}/${state.maxes[stream] ?: 0}"
         }
         views.setContentDescription(
             R.id.status_panel,
-            "現在の音量: ${ringerModeLabel(mode)}、$levels${drift?.let { "、$it" } ?: ""}。タップで Volace を開く",
+            context.getString(
+                R.string.widget_cd_status,
+                context.getString(ringerModeLabel(mode)),
+                levels,
+                drift?.let { separator + it }.orEmpty(),
+            ),
         )
     }
 
@@ -382,9 +405,6 @@ object WidgetRenderer {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
     }
-
-    private const val NEEDS_ACCESS =
-        "「サイレント モードへのアクセス」が必要です。タップして Volace を開き、許可してください"
 
     /** Full scale of [android.graphics.drawable.ClipDrawable]'s level. */
     private const val MAX_LEVEL = 10_000
