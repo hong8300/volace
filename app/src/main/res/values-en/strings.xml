@@ -317,4 +317,27 @@
     <string name="sound_permission">Switching sounds needs the “Modify system settings” permission.</string>
     <string name="sound_permission_button">Allow</string>
     <string name="sound_failed_permission">sounds (needs “Modify system settings”)</string>
+    <!-- Do Not Disturb -->
+    <string name="dnd_title">Do Not Disturb</string>
+    <string name="dnd_off">Don’t use</string>
+    <string name="dnd_off_desc">Volace’s modes off. Other modes (Bedtime, Driving…) and Do Not Disturb turned on by hand stay as they are</string>
+    <string name="dnd_priority">Priority only</string>
+    <string name="dnd_priority_desc">Only the calls, notifications and alarms allowed in the phone’s Do Not Disturb settings sound</string>
+    <string name="dnd_alarms">Alarms only</string>
+    <string name="dnd_alarms_desc">Only alarms and media sound. Calls and notifications don’t</string>
+    <string name="dnd_rule_name">Volace (%1$s)</string>
+    <string name="dnd_rule_trigger">Switched by Volace’s profiles</string>
+    <string name="dnd_hint_silent">With the ringer on “Silent”, Android also turns on Do Not Disturb (priority only) by itself.</string>
+    <string name="dnd_hint_others">While another mode is on, the ringer mode is left alone so that mode keeps running.</string>
+    <string name="dnd_state_off">Do Not Disturb: off</string>
+    <string name="dnd_state_on">Do Not Disturb: %1$s</string>
+    <string name="dnd_state_by_others">Do Not Disturb: %1$s (another mode)</string>
+    <string name="dnd_kind_priority_alarms">priority only, alarms sound</string>
+    <string name="dnd_kind_priority_no_alarms">priority only, no alarms</string>
+    <string name="dnd_kind_alarms">alarms and media only</string>
+    <string name="dnd_kind_none">total silence</string>
+    <string name="dnd_short">DND</string>
+    <string name="dnd_short_kind">DND (%1$s)</string>
+    <string name="dnd_short_alarms_on">alarms on</string>
+    <string name="dnd_short_alarms_off">no alarms</string>
 </resources>

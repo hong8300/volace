@@ -10,6 +10,7 @@ import com.hong.volace.R
 import com.hong.volace.audio.ApplyResult
 import com.hong.volace.audio.ProfileSwitcher
 import com.hong.volace.audio.SoundKind
+import com.hong.volace.audio.SwitchSource
 import com.hong.volace.audio.Sounds
 import com.hong.volace.audio.valueOf
 import com.hong.volace.audio.VolumeApplier
@@ -97,7 +98,7 @@ object ProfileTimers {
      * visible activity or while [TimerService] runs. Null when there was no timer.
      */
     suspend fun restore(context: Context): RestoreOutcome? =
-        ProfileSwitcher.exclusive(context) { app, dao -> restoreLocked(app, dao) }
+        ProfileSwitcher.exclusive(context) { app, dao -> restoreLocked(app, dao, SwitchSource.USER) }
 
     /** The alarm went off. Goes back, or leaves the timer due and asks the user to. */
     suspend fun expire(context: Context) {
@@ -108,7 +109,7 @@ object ProfileTimers {
                 TimerAlarm.schedule(app, timer.endAt)
                 return@exclusive null
             }
-            restoreLocked(app, dao)
+            restoreLocked(app, dao, SwitchSource.SCHEDULE)
         } ?: return
         if (!outcome.restored) {
             Log.w(TAG, "could not restore ${outcome.name}: ${outcome.result}")
@@ -153,12 +154,12 @@ object ProfileTimers {
         TimerNotifications.cancelDue(context)
     }
 
-    private suspend fun restoreLocked(app: Context, dao: ProfileDao): RestoreOutcome? {
+    private suspend fun restoreLocked(app: Context, dao: ProfileDao, source: SwitchSource): RestoreOutcome? {
         val timer = TimerStore.load(app) ?: return null
         val applier = VolumeApplier(app)
         val profile: Profile? = timer.restoreId?.let { dao.getById(it) }
         val target = profile ?: timer.previousProfile(app.getString(R.string.timer_previous_state))
-        val result = applier.apply(target)
+        val result = applier.apply(target, source)
         // Android 17 ignores a change it does not allow without saying so: read it back.
         val restored = result == ApplyResult.Applied && applier.matches(target, applier.snapshot())
         if (restored) {

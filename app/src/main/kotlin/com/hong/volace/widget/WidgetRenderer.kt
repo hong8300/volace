@@ -1,5 +1,7 @@
 package com.hong.volace.widget
 
+import com.hong.volace.audio.DndState
+import com.hong.volace.audio.DndModes
 import com.hong.volace.timer.ProfileTimer
 import com.hong.volace.timer.ProfileTimers
 import com.hong.volace.timer.timerEndText
@@ -41,6 +43,8 @@ internal class WidgetState(
     val palette: WidgetPalette,
     /** A timed profile running ("15:00 まで"), if any. */
     val timer: ProfileTimer? = null,
+    /** "Do Not Disturb" now, for the status read-out. */
+    val dnd: DndState = DndState.OFF,
 ) {
     val active: Profile? get() = profiles.firstOrNull { it.isActive }
 
@@ -69,6 +73,7 @@ internal class WidgetState(
                 hasAccess = applier.hasAccess(),
                 palette = WidgetPalette.of(context, SkinStore.current(context)),
                 timer = ProfileTimers.current(context),
+                dnd = DndModes(context).state(),
             )
         }
     }
@@ -334,7 +339,7 @@ object WidgetRenderer {
         if (panel == StatusPanel.FULL) {
             views.setTextViewText(
                 R.id.status_mode_text,
-                listOfNotNull(context.getString(ringerModeLabel(mode)), drift ?: state.timerCaption(context))
+                listOfNotNull(context.getString(ringerModeLabel(mode)), state.dnd.shortText(context), drift ?: state.timerCaption(context))
                     .joinToString(context.getString(R.string.list_separator)),
             )
             views.color(R.id.status_open, "setTextColor", p, accent)
@@ -345,7 +350,9 @@ object WidgetRenderer {
                 when {
                     !state.hasAccess -> context.getString(R.string.widget_caption_needs_access)
                     state.drifted -> context.getString(R.string.changed)
-                    else -> state.timerCaption(context) ?: context.getString(R.string.widget_caption_details)
+                    else -> state.timerCaption(context)
+                        ?: context.getString(R.string.dnd_short).takeIf { state.dnd.active }
+                        ?: context.getString(R.string.widget_caption_details)
                 },
             )
             views.color(R.id.status_caption, "setTextColor", p) { colors ->
@@ -362,7 +369,8 @@ object WidgetRenderer {
             R.id.status_panel,
             context.getString(
                 R.string.widget_cd_status,
-                context.getString(ringerModeLabel(mode)),
+                listOf(context.getString(ringerModeLabel(mode)), state.dnd.describe(context))
+                    .joinToString(separator),
                 levels,
                 (drift ?: state.timerCaption(context))?.let { separator + it }.orEmpty(),
             ),

@@ -7,7 +7,7 @@ import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
-@Database(entities = [Profile::class, ScheduleRule::class, ScheduleSkip::class], version = 5, exportSchema = true)
+@Database(entities = [Profile::class, ScheduleRule::class, ScheduleSkip::class], version = 6, exportSchema = true)
 abstract class VolaceDatabase : RoomDatabase() {
     abstract fun profileDao(): ProfileDao
     abstract fun scheduleDao(): ScheduleDao
@@ -58,11 +58,18 @@ abstract class VolaceDatabase : RoomDatabase() {
             }
         }
 
+        /** v5 -> v6: per-profile "Do Not Disturb"; 0 (Volace's modes off) is what profiles did before. */
+        internal val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE profiles ADD COLUMN dndMode INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
         /**
          * Every migration, oldest first. When bumping the version: add the migration here, commit
          * the new schema JSON under app/schemas, and add a case to MigrationTest.
          */
-        internal val MIGRATIONS = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+        internal val MIGRATIONS = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
 
         internal const val NAME = "volace.db"
 

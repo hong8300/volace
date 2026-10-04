@@ -36,14 +36,19 @@ fun VolumeApplier.ranges(): StreamRanges =
  * Streams Android rewrites on its own are skipped, otherwise a freshly applied profile would
  * immediately look changed:
  * - SYSTEM is aliased to RING (see [VolumeApplier.apply]), so it always reports the ringer's level.
- * - In vibrate/silent, RING and NOTIFICATION are muted and report 0.
+ * - In vibrate/silent, RING and NOTIFICATION are muted and report 0; so under "Do Not Disturb",
+ *   which also hides the ringer mode (compared only while DND is off).
+ * - Volace's own DND mode must be the profile's.
  * - Streams the profile leaves alone ("変更しない") match whatever the device has.
  * Expected values are what apply actually writes: moved into the device's range.
  */
 internal fun profileMatches(profile: Profile, device: DeviceVolumes, ranges: StreamRanges): Boolean {
     val expected = ranges.normalize(profile)
-    if (device.ringerMode != expected.ringerMode) return false
-    val ringerMuted = expected.ringerMode != AudioManager.RINGER_MODE_NORMAL
+    if (device.volaceDnd != expected.dndMode) return false
+    // Under DND the ringer reads silent whatever it is, and Volace leaves it alone while another
+    // mode is on (DESIGN.md 5.17): only compared once DND is off.
+    if (!device.dndActive && device.ringerMode != expected.ringerMode) return false
+    val ringerMuted = expected.ringerMode != AudioManager.RINGER_MODE_NORMAL || device.dndActive
     return VolumeStream.entries.all { stream ->
         when {
             stream.isKeptBy(expected) -> true

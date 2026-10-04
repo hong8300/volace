@@ -1,5 +1,7 @@
 package com.hong.volace.ui.list
 
+import android.app.NotificationManager
+import com.hong.volace.audio.DndModes
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -87,6 +89,9 @@ fun rememberDeviceVolumes(applier: VolumeApplier): State<DeviceVolumes> {
             addAction(ACTION_VOLUME_CHANGED)
             addAction(ACTION_STREAM_MUTE_CHANGED)
             addAction(AudioManager.RINGER_MODE_CHANGED_ACTION)
+            // A mode turned on or off elsewhere (Bedtime, the Quick Settings tile...).
+            addAction(NotificationManager.ACTION_INTERRUPTION_FILTER_CHANGED)
+            addAction(NotificationManager.ACTION_NOTIFICATION_POLICY_CHANGED)
         }
         context.registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
         read.run()
@@ -116,6 +121,9 @@ fun CurrentVolumeCard(
     onRestoreTimer: () -> Unit = {},
     onExtendTimer: () -> Unit = {},
 ) {
+    val context = LocalContext.current
+    // Read along with the volumes: both change on the same broadcasts (rememberDeviceVolumes).
+    val dnd = remember(device) { DndModes(context).state() }
     val accent = active?.let { Color(it.colorArgb) } ?: MaterialTheme.colorScheme.primary
     Surface(
         shape = RoundedCornerShape(20.dp),
@@ -152,6 +160,13 @@ fun CurrentVolumeCard(
                     modifier = Modifier.padding(top = 2.dp),
                 )
             }
+            // What still sounds is the question DND raises ("サイレントなのに何が鳴るのか").
+            Text(
+                text = dnd.describe(context),
+                style = MaterialTheme.typography.bodySmall,
+                color = if (dnd.active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 2.dp),
+            )
             if (timer != null) {
                 Spacer(Modifier.height(8.dp))
                 TimerPanel(timer, accent, onRestoreTimer, onExtendTimer)

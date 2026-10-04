@@ -38,6 +38,9 @@ class VolumeWatchJob : JobService() {
     companion object {
         private const val JOB_ID = 1
 
+        /** Settings.Global.ZEN_MODE, which the SDK hides. */
+        private const val ZEN_MODE = "zen_mode"
+
         /** Coalesce a held volume key into one redraw, but never lag by more than a second. */
         private const val UPDATE_DELAY_MS = 100L
         private const val MAX_DELAY_MS = 1_000L
@@ -59,6 +62,8 @@ class VolumeWatchJob : JobService() {
                 .addTriggerContentUri(
                     JobInfo.TriggerContentUri(Settings.Global.getUriFor(Settings.Global.MODE_RINGER), 0),
                 )
+                // "Do Not Disturb" turned on or off by any mode (the widgets show it).
+                .addTriggerContentUri(JobInfo.TriggerContentUri(Settings.Global.getUriFor(ZEN_MODE), 0))
                 .setTriggerContentUpdateDelay(UPDATE_DELAY_MS)
                 .setTriggerContentMaxDelay(MAX_DELAY_MS)
                 .build()

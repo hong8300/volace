@@ -312,4 +312,27 @@
     <string name="sound_permission">音を切り替えるには「システム設定の変更」の許可が必要です。</string>
     <string name="sound_permission_button">許可する</string>
     <string name="sound_failed_permission">音（「システム設定の変更」の許可が必要）</string>
+    <!-- Do Not Disturb (おやすみモード) -->
+    <string name="dnd_title">おやすみモード</string>
+    <string name="dnd_off">使わない</string>
+    <string name="dnd_off_desc">Volace のモードはオフ。ほかのモード（おやすみ時間・運転中など）や手動のおやすみモードはそのまま</string>
+    <string name="dnd_priority">重要な通知のみ</string>
+    <string name="dnd_priority_desc">端末のおやすみモードの設定で許可した通話・通知・アラームだけ鳴る</string>
+    <string name="dnd_alarms">アラームのみ</string>
+    <string name="dnd_alarms_desc">アラームとメディアだけ鳴る。着信・通知は鳴らない</string>
+    <string name="dnd_rule_name">Volace（%1$s）</string>
+    <string name="dnd_rule_trigger">Volace のプロファイルで切り替わります</string>
+    <string name="dnd_hint_silent">着信モードを「サイレント」にすると、Android がおやすみモード（重要な通知のみ）を別に自動でオンにします。</string>
+    <string name="dnd_hint_others">ほかのモードがオンの間は、そのモードを止めないよう着信モードは変えません。</string>
+    <string name="dnd_state_off">おやすみモード: オフ</string>
+    <string name="dnd_state_on">おやすみモード: %1$s</string>
+    <string name="dnd_state_by_others">おやすみモード: %1$s（ほかのモード）</string>
+    <string name="dnd_kind_priority_alarms">重要な通知のみ・アラームは鳴る</string>
+    <string name="dnd_kind_priority_no_alarms">重要な通知のみ・アラームも鳴らない</string>
+    <string name="dnd_kind_alarms">アラームとメディアのみ</string>
+    <string name="dnd_kind_none">すべてミュート</string>
+    <string name="dnd_short">おやすみ</string>
+    <string name="dnd_short_kind">おやすみ（%1$s）</string>
+    <string name="dnd_short_alarms_on">アラーム可</string>
+    <string name="dnd_short_alarms_off">アラーム不可</string>
 </resources>

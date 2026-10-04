@@ -32,6 +32,8 @@ data class Profile(
     val ringtoneUri: String? = null,
     val notificationSoundUri: String? = null,
     val alarmSoundUri: String? = null,
+    /** What it does with "Do Not Disturb" (DndMode.value): Volace's own modes only. */
+    val dndMode: Int = 0,
 )
 
 /**
@@ -56,6 +58,7 @@ data class ProfileEdits(
     val ringtoneUri: String?,
     val notificationSoundUri: String?,
     val alarmSoundUri: String?,
+    val dndMode: Int,
 )
 
 fun Profile.edits() = ProfileEdits(
@@ -74,4 +77,5 @@ fun Profile.edits() = ProfileEdits(
     ringtoneUri = ringtoneUri,
     notificationSoundUri = notificationSoundUri,
     alarmSoundUri = alarmSoundUri,
+    dndMode = dndMode,
 )

@@ -46,10 +46,15 @@ class VolumeApplier(context: Context) {
 
     private val ranges by lazy { ranges() }
 
-    fun snapshot(): DeviceVolumes = DeviceVolumes(
-        ringerMode = audioManager.ringerMode,
-        levels = VolumeStream.entries.associateWith { currentVolume(it) },
-    )
+    fun snapshot(): DeviceVolumes {
+        val dnd = DndModes(context)
+        return DeviceVolumes(
+            ringerMode = audioManager.ringerMode,
+            levels = VolumeStream.entries.associateWith { currentVolume(it) },
+            dndActive = dnd.active,
+            volaceDnd = dnd.current().value,
+        )
+    }
 
     /**
      * Whether the device still sits where [profile] left it. Streams Android rewrites on its own
@@ -66,7 +71,7 @@ class VolumeApplier(context: Context) {
      * changing the ringer mode throws, which used to be swallowed: the volumes were half written
      * and the profile was still recorded as applied. Now nothing is touched in that case.
      */
-    fun apply(stored: Profile): ApplyResult {
+    fun apply(stored: Profile, source: SwitchSource = SwitchSource.USER): ApplyResult {
         if (!notificationManager.isNotificationPolicyAccessGranted) return ApplyResult.NeedsAccess
         // Profiles saved before ranges were enforced (or copied from another phone) may hold
         // levels this device cannot take; write what it can.
@@ -80,15 +85,27 @@ class VolumeApplier(context: Context) {
             }
         }
 
+        // Volace's own DND modes go off first: what is still on after that is the user's or another
+        // app's (Bedtime, driving...). "着信音"/"バイブ" ends DND as a whole, every other active
+        // mode included (DESIGN.md 8.9), so the ringer is only set while DND is off, or when the DND
+        // on is the one Volace's "サイレント" brought. Otherwise the ringer, and the ringer-linked
+        // RING/SYSTEM levels (writing those can switch the ringer too), stay with the mode that is
+        // on; Android brings its own ringer back when that mode ends.
+        val dnd = DndModes(context)
+        dnd.turnOffOwn(source)
+        val dndBefore = dnd.active
+        val setRinger = profile.ringerMode == AudioManager.RINGER_MODE_SILENT || !dndBefore || dnd.silentByVolace
+        val ringerLinked = setOf(VolumeStream.RINGER, VolumeStream.SYSTEM)
+
         // Set the mode first so the ring/notification streams are unmuted and actually accept the
         // indices we are about to write.
         val ringerModeName = context.getString(R.string.ringer_mode)
-        attempt(ringerModeName) { audioManager.ringerMode = profile.ringerMode }
+        if (setRinger) attempt(ringerModeName) { audioManager.ringerMode = profile.ringerMode }
 
         // STREAM_SYSTEM is aliased to STREAM_RING on stock Android audio policy (confirmed via
         // dumpsys audio on Pixel 9 Pro XL / Android 17): whichever of the two is set last wins.
         // Apply SYSTEM first so the user-facing Ringer value is the one that actually sticks.
-        APPLY_ORDER.filterNot { it.isKeptBy(profile) }.forEach { stream ->
+        APPLY_ORDER.filterNot { it.isKeptBy(profile) || (!setRinger && it in ringerLinked) }.forEach { stream ->
             attempt(context.getString(stream.label)) {
                 audioManager.setStreamVolume(stream.streamType, stream.valueOf(profile), 0)
             }
@@ -97,14 +114,24 @@ class VolumeApplier(context: Context) {
         // Writing 0 to STREAM_RING makes the system drop into VIBRATE on its own, which silently
         // overrides an explicit "silent" profile. Re-assert the mode so the profile has the last
         // word, then restore the ring/notification indices the mode change may have bumped.
-        attempt(ringerModeName) { audioManager.ringerMode = profile.ringerMode }
-        if (profile.ringerMode == AudioManager.RINGER_MODE_NORMAL) {
+        if (setRinger) attempt(ringerModeName) { audioManager.ringerMode = profile.ringerMode }
+        if (setRinger && profile.ringerMode == AudioManager.RINGER_MODE_NORMAL) {
             listOf(VolumeStream.NOTIFICATION, VolumeStream.RINGER).filterNot { it.isKeptBy(profile) }.forEach { stream ->
                 attempt(context.getString(stream.label)) {
                     audioManager.setStreamVolume(stream.streamType, stream.valueOf(profile), 0)
                 }
             }
         }
+        // Android adds DND to "サイレント": Volace's to end later if it was off before.
+        if (profile.ringerMode == AudioManager.RINGER_MODE_SILENT) {
+            if (!dndBefore) dnd.silentByVolace = true
+        } else if (setRinger) {
+            dnd.silentByVolace = false
+        }
+        DndMode.of(profile.dndMode).takeIf { it != DndMode.OFF }?.let { mode ->
+            attempt(context.getString(R.string.dnd_title)) { dnd.turnOn(mode, source) }
+        }
+
         applySounds(profile, failed)
         return if (failed.isEmpty()) ApplyResult.Applied else ApplyResult.Partial(failed)
     }

@@ -15,6 +15,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.lifecycleScope
+import com.hong.volace.audio.DndMode
+import com.hong.volace.audio.DndModes
 import com.hong.volace.audio.VolumeApplier
 import com.hong.volace.data.DefaultProfiles
 import com.hong.volace.data.VolaceDatabase
@@ -73,6 +75,7 @@ class MainActivity : ComponentActivity() {
             }
             // The schedule's alarm is gone after a force stop, which no broadcast reports.
             Schedules.reschedule(applicationContext)
+            removeUnusedDndModes()
         }
 
         setContent {
@@ -105,6 +108,8 @@ class MainActivity : ComponentActivity() {
                                 onDone = { result ->
                                     message = result
                                     screen = Screen.ProfileList
+                                    // A profile saved without its DND mode, or deleted.
+                                    lifecycleScope.launch(Dispatchers.IO) { removeUnusedDndModes() }
                                 },
                             )
                             Screen.Schedule -> ScheduleScreen(
@@ -144,6 +149,13 @@ class MainActivity : ComponentActivity() {
                 .addCategory(Intent.CATEGORY_LAUNCHER)
                 .setClass(context, MainActivity::class.java)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED)
+    }
+
+    /** Volace's DND modes that no profile uses leave the system's Modes list (DndModes.removeUnused). */
+    private suspend fun removeUnusedDndModes() {
+        if (!checkDndAccess()) return
+        val used = VolaceDatabase.get(this).profileDao().getAllOnce().map { DndMode.of(it.dndMode) }.toSet()
+        DndModes(this).removeUnused(used)
     }
 
     private fun checkDndAccess(): Boolean {

@@ -52,6 +52,7 @@ data class ProfileTimer(
         .put("profileName", profileName)
         .put("restoreName", restoreName)
         .put("ringerMode", previous.ringerMode)
+        .put("dnd", previous.volaceDnd)
         .put("levels", JSONObject().apply { previous.levels.forEach { (stream, level) -> put(stream.key, level) } })
         .put("sounds", JSONObject().apply { previousSounds.forEach { (kind, value) -> put(kind.key, value) } })
         .toString()
@@ -72,6 +73,7 @@ data class ProfileTimer(
                 previous = DeviceVolumes(
                     ringerMode = json.getInt("ringerMode"),
                     levels = VolumeStream.entries.associateWith { levels.optInt(it.key, 0) },
+                    volaceDnd = json.optInt("dnd", 0),
                 ),
                 previousActiveId = json.optLongOrNull("previousActiveId"),
                 profileName = json.optString("profileName"),
@@ -104,6 +106,8 @@ internal fun DeviceVolumes.asProfile(name: String): Profile {
         alarmVolume = 0,
         voiceCallVolume = 0,
         systemVolume = 0,
+        // Volace's own DND mode as it was; another app's is not Volace's to bring back.
+        dndMode = volaceDnd,
     )
     val withLevels = VolumeStream.entries.fold(base) { p, stream -> stream.copyWith(p, levelOf(stream)) }
     if (ringerMode == AudioManager.RINGER_MODE_NORMAL) return withLevels
