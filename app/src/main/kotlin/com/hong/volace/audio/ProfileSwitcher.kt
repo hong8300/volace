@@ -35,11 +35,14 @@ object ProfileSwitcher {
 
     /** Steps to the profile after the one in effect, wrapping around (the 1×1 widget). */
     suspend fun cycle(context: Context): Outcome? =
-        switch(context) { dao ->
-            val all = dao.getAllOnce()
-            // indexOfFirst returns -1 when nothing is active, which lands on index 0.
-            all.getOrNull((all.indexOfFirst { it.isActive } + 1).mod(all.size.coerceAtLeast(1)))
-        }
+        switch(context) { dao -> nextInCycle(dao.getAllOnce()) }
+
+    /** The profile after the one in effect, wrapping; the first when none is. Null when empty. */
+    internal fun nextInCycle(profiles: List<Profile>): Profile? {
+        if (profiles.isEmpty()) return null
+        // indexOfFirst returns -1 when nothing is active, which lands on index 0.
+        return profiles[(profiles.indexOfFirst { it.isActive } + 1).mod(profiles.size)]
+    }
 
     private suspend fun switch(context: Context, pick: suspend (ProfileDao) -> Profile?): Outcome? {
         val app = context.applicationContext

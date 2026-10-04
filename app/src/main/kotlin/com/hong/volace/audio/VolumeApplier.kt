@@ -56,19 +56,7 @@ class VolumeApplier(context: Context) {
      * Expected values are what [apply] actually writes: moved into the device's range
      * ([StreamRanges]; call and alarm cannot go below 1, an audible ringer not below 1).
      */
-    fun matches(profile: Profile, device: DeviceVolumes): Boolean {
-        val expected = ranges.normalize(profile)
-        if (device.ringerMode != expected.ringerMode) return false
-        val ringerMuted = expected.ringerMode != AudioManager.RINGER_MODE_NORMAL
-        return VolumeStream.entries.all { stream ->
-            when {
-                stream.isKeptBy(expected) -> true // whatever the device has is right
-                stream == VolumeStream.SYSTEM -> true
-                ringerMuted && stream in RINGER_STREAMS -> true
-                else -> device.levelOf(stream) == stream.valueOf(expected)
-            }
-        }
-    }
+    fun matches(profile: Profile, device: DeviceVolumes): Boolean = profileMatches(profile, device, ranges)
 
     /**
      * Applies [profile] and reports whether Android accepted all of it. Without DND access,
@@ -127,8 +115,6 @@ class VolumeApplier(context: Context) {
             VolumeStream.VOICE_CALL,
             VolumeStream.RINGER,
         )
-
-        val RINGER_STREAMS = setOf(VolumeStream.RINGER, VolumeStream.NOTIFICATION)
 
         const val RINGER_MODE = "着信モード"
     }
