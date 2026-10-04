@@ -6,6 +6,12 @@ Android の音量プロファイル切り替えアプリ + ホーム画面ウィ
 > An ad-free volume profile switcher for Android, with home-screen widgets.
 > Built as a replacement for Volume Ace, which no longer installs on modern devices.
 
+ソースは公開していますが、**オープンソースではありません**。使えるのは「アプリの利用」と
+「ソースからビルドして個人で使う」までです。詳しくは [ライセンスと利用条件](#ライセンスと利用条件) へ。
+
+> The source is public, but this is **not open source**: use of the app, and building it from source
+> for personal use, are allowed; modification and redistribution are not. See [LICENSE](LICENSE).
+
 ## なぜ作ったか
 
 音量プロファイル系のアプリはどれも広告付きで、参考にしていた **Volume Ace** は
@@ -52,6 +58,9 @@ targetSdk 要件に縛られないので、必要な機能だけを自分で作�
 経緯は [DESIGN.md](DESIGN.md) の 5章・8.1 に記録しています。
 
 ## ビルド
+
+ソースからのビルドと、そのビルドを自分で使うことは [LICENSE](LICENSE) で許可しています
+（改変と、ビルドしたものの再配布は許可していません）。
 
 ```sh
 ./gradlew assembleDebug
@@ -120,4 +129,33 @@ cp keystore.properties.sample keystore.properties
 - Pixel 11 Pro (Android 17 / SDK 37)
 - Pixel 9a (Android 17 / SDK 37)
 
-Play ストアには公開していません。自分と家族の端末へのサイドロード用です。
+現在は Play ストアに公開していません。
+
+## ライセンスと利用条件
+
+条件は [LICENSE](LICENSE)（Volace License）にあります。ソースコード、アイコン等の素材、
+ビルドしたアプリ（APK / AAB）のすべてが対象です。
+
+**できること**
+
+- ソースコードを読む
+- アプリ Volace を使う
+- このリポジトリのソースから自分でビルドして、個人で使う
+
+**できないこと**（上に書いていないことは、すべて許可していません）
+
+- 改変（個人で使うためのものも含む）
+- 元の版・改変版を問わず、コピーの配布・再配布（無償でも有償でも）
+- 販売・商用の再配布、第三者による Google Play などでの配布
+- コードやアイコン等の素材を、ほかのソフトウェアに取り込むこと
+- 自分でビルドしたものを他人に渡すこと
+
+**補足**
+
+- **GitHub:** 公開リポジトリは、GitHub の利用規約が認める範囲（GitHub 上での閲覧と fork）では
+  LICENSE に制限されません。それ以外の利用は、fork 先でも LICENSE の範囲です
+- **Google Play:** 作者自身が公式版を Google Play で有料配布することを目指しています（#59）。
+  公式版の入手条件は、公開したときのストアの表示によります。ソースからのビルドは無償で、
+  Play 版の購入とは関係ありません。第三者による配布はできません
+- **第三者の素材・ライブラリ:** Material Icons や AndroidX など（アプリに入るものはすべて Apache License 2.0）は
+  それぞれのライセンスに従います。表示とライセンス文は [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) にあります
