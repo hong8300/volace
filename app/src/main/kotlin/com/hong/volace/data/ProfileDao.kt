@@ -29,10 +29,11 @@ interface ProfileDao {
     suspend fun insertAll(profiles: List<Profile>)
 
     @Update
-    suspend fun update(profile: Profile)
-
-    @Update
     suspend fun updateAll(profiles: List<Profile>)
+
+    /** Saves the edit screen's changes without touching isActive / orderIndex. */
+    @Update(entity = Profile::class)
+    suspend fun saveEdits(edits: ProfileEdits)
 
     @Delete
     suspend fun delete(profile: Profile)

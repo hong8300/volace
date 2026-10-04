@@ -75,6 +75,7 @@ import com.hong.volace.data.Profile
 import com.hong.volace.data.ProfileDao
 import com.hong.volace.data.ProfileIcon
 import com.hong.volace.data.ProfilePalette
+import com.hong.volace.data.edits
 import com.hong.volace.data.icon
 import com.hong.volace.widget.WidgetRefresher
 import kotlinx.coroutines.launch
@@ -172,7 +173,7 @@ fun ProfileEditScreen(
                         onClick = {
                             scope.launch {
                                 val toSave = current.copy(name = current.name.ifBlank { "無題" })
-                                if (profileId == null) dao.insert(toSave) else dao.update(toSave)
+                                if (profileId == null) dao.insert(toSave) else dao.saveEdits(toSave.edits())
                                 WidgetRefresher.request(context)
                                 onDone()
                             }
