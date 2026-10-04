@@ -232,7 +232,10 @@ AudioService は音量を `Settings.System`(`volume_music_speaker` 等、出力�
 - 着信モードは一致が必要(サイレント適用後も `getRingerMode()` はサイレントを返す。8.3 の内部モードとは別)
 - `SYSTEM` は `RING` のエイリアス(8章)なので比較しない
 - バイブ/サイレントでは `RING` / `NOTIFICATION` はミュートされ 0 を返すので比較しない
-- 期待値は `getStreamMinVolume()`〜`getStreamMaxVolume()` に丸める(通話・アラームは最小 1)
+- 期待値は `StreamRanges` で丸めた値(issue #14)。範囲は `getStreamMinVolume()`〜`getStreamMaxVolume()`
+  (通話・アラームは最小 1)で、**「着信音あり」の着信音は最小 1**(0 にすると Android がバイブに切り替えるため)。
+  同じ範囲を編集画面のスライダー・±ボタン、保存、適用、比較のすべてで使うので、
+  「画面では 0 なのに実際は 1 で鳴る」「着信音ありなのに適用直後から変更あり」が起きない
 - ヘッドホン等で出力先が変わるとメディアの値も変わるので「変更あり」になる。実際に音量が違うので正しい挙動とする
 
 ### 5.8 適用に失敗したとき(issue #5)

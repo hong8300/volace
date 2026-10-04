@@ -3,6 +3,7 @@ package com.hong.volace.data
 import android.media.AudioManager
 import com.hong.volace.audio.VolumeApplier
 import com.hong.volace.audio.VolumeStream
+import com.hong.volace.audio.ranges
 import kotlin.math.roundToInt
 
 /**
@@ -13,10 +14,9 @@ import kotlin.math.roundToInt
 object DefaultProfiles {
 
     fun build(applier: VolumeApplier): List<Profile> {
-        fun v(stream: VolumeStream, percent: Double): Int {
-            val max = applier.maxVolume(stream)
-            return (max * percent).roundToInt().coerceIn(0, max)
-        }
+        val ranges = applier.ranges()
+        fun v(stream: VolumeStream, percent: Double): Int =
+            (ranges.max(stream) * percent).roundToInt()
 
         fun profile(
             name: String,
@@ -30,7 +30,7 @@ object DefaultProfiles {
             system: Double,
             color: Int,
             icon: ProfileIcon,
-        ) = Profile(
+        ) = ranges.normalize(Profile(
             name = name,
             orderIndex = order,
             ringerMode = ringerMode,
@@ -42,7 +42,7 @@ object DefaultProfiles {
             systemVolume = v(VolumeStream.SYSTEM, system),
             colorArgb = color,
             iconKey = icon.key,
-        )
+        ))
 
         return listOf(
             profile(
