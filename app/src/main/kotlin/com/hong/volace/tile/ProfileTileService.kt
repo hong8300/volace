@@ -55,7 +55,7 @@ class ProfileTileService : TileService() {
             !state.hasAccess -> getString(R.string.tile_needs_access)
             active == null -> getString(R.string.tile_tap_to_pick)
             state.drifted -> getString(R.string.changed)
-            else -> getString(R.string.app_name)
+            else -> state.timerCaption(this) ?: getString(R.string.app_name)
         }
         tile.icon = Icon.createWithResource(this, active?.icon?.res ?: R.drawable.ic_profile_volume_up)
         // "On" means a profile is in effect as applied; drifted or nothing applied reads as off.

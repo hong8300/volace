@@ -90,6 +90,7 @@
     <string name="widget_not_applied">Not applied · tap to apply</string>
     <string name="widget_tap_next">Tap for next</string>
     <string name="widget_cd_drifted_suffix"> (volume changed since it was applied)</string>
+    <string name="widget_cd_timer_suffix"> (%1$s)</string>
     <string name="widget_cd_cycle">Now: %1$s%2$s. Tap for the next profile</string>
     <string name="widget_cd_active">%1$s (in effect)</string>
     <string name="widget_cd_drifted">%1$s (volume changed since it was applied). Tap to reapply</string>
@@ -214,4 +215,40 @@
     <string name="a11y_lower">Lower %1$s</string>
     <string name="a11y_raise">Raise %1$s</string>
     <string name="a11y_level">%1$d of %2$d</string>
+    <!-- Timed profiles -->
+    <string name="timer_button">Timer</string>
+    <string name="timer_dialog_title">Apply “%1$s” for a while</string>
+    <string name="timer_how_long">For how long</string>
+    <plurals name="timer_minutes">
+        <item quantity="one">%1$d minute</item>
+        <item quantity="other">%1$d minutes</item>
+    </plurals>
+    <plurals name="timer_hours">
+        <item quantity="one">%1$d hour</item>
+        <item quantity="other">%1$d hours</item>
+    </plurals>
+    <string name="timer_until_time">Until…</string>
+    <string name="timer_until">until %1$s</string>
+    <string name="timer_then">Afterwards</string>
+    <string name="timer_previous_state">the previous settings</string>
+    <string name="timer_restore_previous">Go back to the previous settings</string>
+    <string name="timer_restore_profile">Switch to “%1$s”</string>
+    <string name="timer_summary">On until %1$s, then %2$s</string>
+    <string name="timer_started">Applied “%1$s” until %2$s</string>
+    <string name="timer_restored">Back to %1$s</string>
+    <string name="timer_restore_failed">Couldn’t go back to %1$s. Please try again</string>
+    <string name="timer_none">The timer has already ended</string>
+    <string name="timer_tomorrow">tomorrow %1$s</string>
+    <string name="timer_channel_running">Timed profile running</string>
+    <string name="timer_channel_due">Timed profile ended</string>
+    <string name="timer_running_title">“%1$s” is on</string>
+    <string name="timer_running_text">At %1$s: %2$s</string>
+    <string name="timer_restore_now">End now</string>
+    <string name="timer_extend">+30 min</string>
+    <string name="timer_extended">Extended until %1$s</string>
+    <string name="timer_due_title">Time is up</string>
+    <string name="timer_due_text">Tap for %1$s</string>
+    <string name="timer_card">“%2$s” until %1$s, then %3$s</string>
+    <string name="timer_card_due">Time is up, but not yet back to %1$s</string>
+    <string name="timer_restore_due">Go back</string>
 </resources>

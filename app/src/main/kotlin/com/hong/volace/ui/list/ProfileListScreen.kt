@@ -1,5 +1,14 @@
 package com.hong.volace.ui.list
 
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.material.icons.filled.Timer
+import androidx.compose.runtime.saveable.rememberSaveable
+import com.hong.volace.audio.ApplyResult
+import com.hong.volace.timer.ProfileTimers
+import com.hong.volace.timer.timerEndText
+import com.hong.volace.ui.timer.TimedApplyDialog
+import com.hong.volace.ui.timer.rememberTimerStarter
 import android.content.Intent
 import android.media.AudioManager
 import androidx.compose.foundation.BorderStroke
@@ -126,6 +135,42 @@ fun ProfileListScreen(
     val device by rememberDeviceVolumes(volumeApplier)
     val active = profiles.firstOrNull { it.isActive }
     val drifted = active != null && !volumeApplier.matches(active, device)
+    val resources = LocalResources.current
+
+    val timer by remember(context) { ProfileTimers.observe(context) }.collectAsState(initial = ProfileTimers.current(context))
+    val previousState = stringResource(R.string.timer_previous_state)
+    val timerLine = timer?.let { t ->
+        TimerLine(
+            profileName = profiles.firstOrNull { it.id == t.profileId }?.name ?: t.profileName,
+            restoreName = t.restoreId?.let { id -> profiles.firstOrNull { it.id == id }?.name } ?: previousState,
+            endAt = t.endAt,
+        )
+    }
+    // The profile whose "時間指定" dialog is open.
+    var timedId by rememberSaveable { mutableStateOf<Long?>(null) }
+    val startTimer = rememberTimerStarter { outcome, request ->
+        WidgetRefresher.request(context)
+        if (outcome == null) return@rememberTimerStarter
+        snackbar.currentSnackbarData?.dismiss()
+        snackbar.showSnackbar(
+            if (outcome.result == ApplyResult.Applied) {
+                resources.getString(R.string.timer_started, outcome.profile.name, timerEndText(context, request.endAt))
+            } else {
+                outcome.result.message(context, outcome.profile.name)
+            },
+        )
+    }
+    profiles.firstOrNull { it.id == timedId }?.let { profile ->
+        TimedApplyDialog(
+            profile = profile,
+            profiles = profiles,
+            onConfirm = { request ->
+                timedId = null
+                startTimer(request)
+            },
+            onDismiss = { timedId = null },
+        )
+    }
 
     if (showWidgetPicker) {
         AddWidgetDialog(onDismiss = { showWidgetPicker = false })
@@ -204,7 +249,30 @@ fun ProfileListScreen(
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             item(key = "current-volume") {
-                CurrentVolumeCard(device = device, maxes = maxes, active = active, drifted = drifted)
+                CurrentVolumeCard(
+                    device = device,
+                    maxes = maxes,
+                    active = active,
+                    drifted = drifted,
+                    timer = timerLine,
+                    onRestoreTimer = {
+                        scope.launch {
+                            val outcome = ProfileTimers.restore(context)
+                            WidgetRefresher.request(context)
+                            snackbar.currentSnackbarData?.dismiss()
+                            snackbar.showSnackbar(outcome?.message(context) ?: resources.getString(R.string.timer_none))
+                        }
+                    },
+                    onExtendTimer = {
+                        scope.launch {
+                            ProfileTimers.extend(context)
+                            WidgetRefresher.request(context)
+                            val endAt = ProfileTimers.current(context)?.endAt ?: return@launch
+                            snackbar.currentSnackbarData?.dismiss()
+                            snackbar.showSnackbar(resources.getString(R.string.timer_extended, timerEndText(context, endAt)))
+                        }
+                    },
+                )
             }
             item {
                 Text(
@@ -231,6 +299,7 @@ fun ProfileListScreen(
                         }
                     },
                     onEdit = { onEditProfile(profile.id) },
+                    onTimed = { timedId = profile.id },
                     onMove = { delta ->
                         scope.launch {
                             dao.move(profile.id, delta)
@@ -363,6 +432,7 @@ private fun AddWidgetDialog(onDismiss: () -> Unit) {
     )
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ProfileRow(
     profile: Profile,
@@ -374,6 +444,7 @@ private fun ProfileRow(
     canMoveDown: Boolean,
     onApply: () -> Unit,
     onEdit: () -> Unit,
+    onTimed: () -> Unit,
     onMove: (Int) -> Unit,
 ) {
     val accent = Color(profile.colorArgb)
@@ -444,10 +515,10 @@ private fun ProfileRow(
                 MiniVolumeBars(profile, maxes, accent)
             }
 
-            Row(
+            // Wraps onto a second line when the font is enlarged.
+            FlowRow(
                 modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
-                verticalAlignment = Alignment.CenterVertically,
             ) {
                 if (reorderMode) {
                     OutlinedButton(onClick = { onMove(-1) }, enabled = canMoveUp) {
@@ -461,6 +532,11 @@ private fun ProfileRow(
                         Text(stringResource(R.string.move_down))
                     }
                 } else {
+                    OutlinedButton(onClick = onTimed) {
+                        Icon(Icons.Filled.Timer, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text(stringResource(R.string.timer_button))
+                    }
                     OutlinedButton(onClick = onEdit) {
                         Icon(Icons.Filled.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(6.dp))
