@@ -43,6 +43,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -64,7 +66,9 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.hong.volace.audio.ApplyResult
 import com.hong.volace.audio.VolumeApplier
+import com.hong.volace.audio.message
 import com.hong.volace.audio.VolumeStream
 import com.hong.volace.audio.ringerModeLabel
 import com.hong.volace.audio.valueOf
@@ -91,6 +95,7 @@ fun ProfileListScreen(
     val context = LocalContext.current
     var reorderMode by remember { mutableStateOf(false) }
     var showWidgetPicker by remember { mutableStateOf(false) }
+    val snackbar = remember { SnackbarHostState() }
     val maxes = remember { VolumeStream.entries.associateWith { volumeApplier.maxVolume(it) } }
     val device by rememberDeviceVolumes(volumeApplier)
     val active = profiles.firstOrNull { it.isActive }
@@ -102,6 +107,7 @@ fun ProfileListScreen(
 
     // Every action is spelled out: bare icons (a widget grid, a check mark) were not recognised.
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbar) },
         topBar = {
             TopAppBar(
                 title = { Text("Volace", fontWeight = FontWeight.Bold) },
@@ -173,9 +179,13 @@ fun ProfileListScreen(
                     reorderMode = reorderMode,
                     onApply = {
                         scope.launch {
-                            volumeApplier.apply(profile)
-                            dao.applyActive(profile.id)
+                            val result = volumeApplier.apply(profile)
+                            // Only what Android accepted counts as applied; anything else stays
+                            // visible as a message instead of a misleading "適用中".
+                            if (result == ApplyResult.Applied) dao.applyActive(profile.id)
                             WidgetRefresher.request(context)
+                            snackbar.currentSnackbarData?.dismiss()
+                            snackbar.showSnackbar(result.message(profile.name))
                         }
                     },
                     onEdit = { onEditProfile(profile.id) },

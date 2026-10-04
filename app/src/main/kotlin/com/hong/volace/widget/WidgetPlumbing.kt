@@ -7,6 +7,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import com.hong.volace.audio.ApplyResult
 import com.hong.volace.audio.VolumeApplier
 import com.hong.volace.data.VolaceDatabase
 import kotlinx.coroutines.CoroutineScope
@@ -97,9 +98,16 @@ class VolumeApplyReceiver : BroadcastReceiver() {
                 }
             }
             if (target != null) {
-                VolumeApplier(app).apply(target)
-                dao.applyActive(target.id)
+                val result = VolumeApplier(app).apply(target)
+                if (result == ApplyResult.Applied) {
+                    dao.applyActive(target.id)
+                } else {
+                    // No toast: Android drops toasts from a background app that has no notification
+                    // permission. The redraw below is what tells the user (see WidgetRenderer).
+                    Log.w(TAG, "${target.name} not applied: $result")
+                }
             }
+            // Also flips the widgets to "open the app" cells when access turned out to be missing.
             WidgetRefresher.refreshAll(app)
         }
     }
