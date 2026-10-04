@@ -9,6 +9,7 @@ import android.content.Intent
 import android.util.Log
 import com.hong.volace.audio.ApplyResult
 import com.hong.volace.audio.ProfileSwitcher
+import com.hong.volace.shortcut.ProfileShortcuts
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -60,6 +61,8 @@ object WidgetRefresher {
                 ids.forEach { id -> manager.updateAppWidget(id, views) }
             }
         }
+        // Every profile change comes through here; the shortcuts only update when they differ.
+        ProfileShortcuts.sync(app)
         // Last, so a volume change that lands while we were drawing still triggers another pass.
         VolumeWatchJob.sync(app, armed = placed.isNotEmpty())
     }
