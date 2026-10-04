@@ -150,6 +150,37 @@ class MigrationTest {
         }
     }
 
+    @Test
+    fun migrate6To7_keepsEveryProfileAndAddsBluetoothRules() {
+        helper.createDatabase(DB, 6).use { db ->
+            db.execSQL(
+                "INSERT INTO profiles (id, name, orderIndex, ringerMode, ringVolume, " +
+                    "notificationVolume, mediaVolume, alarmVolume, voiceCallVolume, systemVolume, " +
+                    "isActive, colorArgb, iconKey, keepMask, dndMode) " +
+                    "VALUES (12, '音楽', 3, 2, 4, 4, 25, 6, 11, 4, 0, 42, 'music', 0, 1)",
+            )
+        }
+
+        helper.runMigrationsAndValidate(DB, 7, true, *VolaceDatabase.MIGRATIONS).use { db ->
+            db.query("SELECT name, dndMode FROM profiles WHERE id = 12").use { c ->
+                assertTrue(c.moveToFirst())
+                assertEquals("音楽", c.getString(0))
+                assertEquals(1, c.getInt(1))
+            }
+            db.execSQL(
+                "INSERT INTO bluetooth_rules (address, name, profileId, onDisconnect, disconnectProfileId, enabled) " +
+                    "VALUES ('AA:BB:CC:DD:EE:FF', 'Earbuds', 12, 0, NULL, 1)",
+            )
+            // One rule per device.
+            assertThrows(Exception::class.java) {
+                db.execSQL(
+                    "INSERT INTO bluetooth_rules (address, name, profileId, onDisconnect, disconnectProfileId, enabled) " +
+                        "VALUES ('AA:BB:CC:DD:EE:FF', 'Again', 12, 2, NULL, 1)",
+                )
+            }
+        }
+    }
+
     /** What the app itself does on launch: every registered migration must get it to the latest. */
     @Test
     fun appBuilder_opensOldestSchemaWithoutLosingData() {
@@ -185,7 +216,7 @@ class MigrationTest {
                     "notificationVolume, mediaVolume, alarmVolume, voiceCallVolume, systemVolume, " +
                     "isActive, colorArgb, iconKey, keepMask) VALUES ('通常', 0, 2, 5, 5, 15, 6, 11, 5, 0, 0, 'bell', 0)",
             )
-            db.execSQL("PRAGMA user_version = 7") // as written by a future build
+            db.execSQL("PRAGMA user_version = 8") // as written by a future build
         }
 
         val db = VolaceDatabase.builder(context, DB).allowMainThreadQueries().build()

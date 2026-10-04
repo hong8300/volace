@@ -4,6 +4,7 @@ import android.content.Context
 import com.hong.volace.data.Profile
 import com.hong.volace.data.ProfileDao
 import com.hong.volace.data.VolaceDatabase
+import com.hong.volace.bluetooth.BluetoothSwitch
 import com.hong.volace.schedule.Schedules
 import com.hong.volace.timer.ProfileTimers
 import kotlinx.coroutines.Dispatchers
@@ -61,6 +62,7 @@ object ProfileSwitcher {
                 // Choosing a profile by hand ends a timed one: restoring at the end would undo the choice.
                 ProfileTimers.dropLocked(app)
                 Schedules.noteManualChoice(app, target.id)
+                BluetoothSwitch.noteManualChoice(app, target.id)
             }
         }
         Outcome(target, result)

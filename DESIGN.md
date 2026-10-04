@@ -55,7 +55,7 @@ Profile
   dndMode: Int              // おやすみモード(v6〜)。0 = 使わない / 1 = 重要な通知のみ / 2 = アラームのみ(5.17)
 ```
 
-Room の schema version は **6**。v1 → v2 で `colorArgb` / `iconKey`、v2 → v3 で `keepMask`、v4 → v5 で音の 3 列、v5 → v6 で `dndMode` を `ALTER TABLE ADD COLUMN` し、
+Room の schema version は **7**(v6 → v7 で Bluetooth のルールの表 `bluetooth_rules`、5.18)。v1 → v2 で `colorArgb` / `iconKey`、v2 → v3 で `keepMask`、v4 → v5 で音の 3 列、v5 → v6 で `dndMode` を `ALTER TABLE ADD COLUMN` し、
 v3 → v4 でスケジュールの表(5.15)を作るマイグレーションを持つ(v1〜v3 は実機で既存データを保持したまま移行できることを確認済み)。
 
 `keepMask`(issue #21)はストリームごとの「変更しない」。1ストリーム1ビット(`VolumeStream.keepBit`、DB に保存されるので番号を変えない)。
@@ -457,6 +457,30 @@ AudioService は音量を `Settings.System`(`volume_music_speaker` 等、出力�
 - **バックアップ**: `"dnd": "off" | "priority" | "alarms"`(古いファイルは「使わない」)
 - 権限は追加なし(`ACCESS_NOTIFICATION_POLICY` で足りる)
 
+### 5.18 Bluetooth 連動(issue #29)
+
+イヤホン・車などの Bluetooth 機器をつないだらプロファイルを切り替え、外したら戻す(`bluetooth/`)。
+
+- **入口**: 一覧の「Bluetooth」カード → Bluetooth 画面。ペアリング済みの機器から選び、「つないだら」のプロファイルと、
+  「外したら」(つなぐ前の状態に戻す/プロファイルにする/そのまま)を決める。1 機器 1 ルール(`BluetoothRule`、表 `bluetooth_rules`、アドレスに一意索引)。
+  ルールごとにオン・オフできる。プロファイルを削除すると、それに切り替えるルールも削除する(外したときのプロファイルなら「戻す」にする)
+- **許可**: `BLUETOOTH_CONNECT`(「付近のデバイス」、実行時)。機器の一覧と、接続の通知(`ACTION_ACL_CONNECTED` / `ACL_DISCONNECTED`)の受信に要る
+- **受信**: `BluetoothReceiver` はマニフェストで受ける。Bluetooth スタックは自分の uid(1002)で送るため、`exported="false"` では届かなかった。
+  `exported="true"` にして送り手に `BLUETOOTH_CONNECT` を求め、ルールのある機器だけ扱う
+- **Android 17 の制限への対応(8.7)**: 受信したらイベントを `volace_device.xml` の待ち行列に入れ、すぐ鳴る正確なアラームを登録する。
+  アラームの受信(`BluetoothAlarmReceiver`)から `BluetoothService`(FGS、`specialUse`)を開始し、その中で切り替える(スケジュールと同じ作り)。
+  CompanionDeviceManager による関連付けは要らなかった(実機では Bluetooth の通知自体にも FGS 開始の一時許可 `BLUETOOTH_BROADCAST` が付いていた)
+- **つないだとき**: メディアの出力先がその機器になるまで待つ(`getAudioDevicesForAttributes`、最大 8 秒。メディア・通話の音量は出力機器ごとに別で、
+  切り替わる前に書くと本体スピーカーの音量になる)。適用して読み直し、違えば 1.5 秒後にもう一度(ヘッドセットが自分の音量を送ってくることがある)。
+  成功したら、つなぐ前の状態(時間指定と同じく、着信モード・音量・Volace のおやすみモード・変えた音)を機器ごとに記録する
+- **外したとき**: 適用中のプロファイルがつないだときのままなら、記録した状態に戻す(または選んだプロファイル)。メディアと通話は「変更しない」で戻す
+  (変えたのは機器側の音量で、本体スピーカーの音量はそのまま残っているため)。つないでいる間に手動・スケジュール・時間指定で別のプロファイルに
+  なっていたら戻さない(「そのままにしました」)
+- **時間指定中**: スケジュールと同じく、時間指定は続け、終わったらつないだときのプロファイルにする
+- **失敗**: 読み直しで違えば「〇〇：『△△』に切り替えられませんでした。タップすると切り替えます」(タップは `ApplyShortcutActivity`)。
+  手動でプロファイルを選んだら、失敗の通知を消し、記録を「手動で切り替えた」/「手動の選択を優先した」にする(`BluetoothSwitch.noteManualChoice`)
+- **表示**: Bluetooth 画面の「前回」と、一覧のカード(ルールの要約、失敗なら赤字)
+
 ## 6. パーミッション
 
 ```xml
@@ -479,6 +503,7 @@ AudioService は音量を `Settings.System`(`volume_music_speaker` 等、出力�
 <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 ```
   - FGS は時間指定の間と、スケジュールの切り替えの 1 秒ほどだけ動く(常駐はしない)。種類は該当するものが無いので `specialUse`
+  - Bluetooth 連動(5.18)のために `BLUETOOTH_CONNECT`(実行時。Bluetooth 画面で求める)
   - スケジュール(5.15)は追加の権限なし。時刻・タイムゾーンの変更(`TIME_SET` / `TIMEZONE_CHANGED`)はマニフェストで受け取れる例外
   - `USE_EXACT_ALARM` は Google Play では時計・カレンダー系のアプリに限られる。Play で配布するなら
     `SCHEDULE_EXACT_ALARM`(ユーザーが許可)に替える。許可が無ければ非正確なアラームになり、終了が数分遅れうる
@@ -760,6 +785,20 @@ Android 17 の `ZenModeHelper.RingerModeDelegate.onSetRingerModeExternal` は、
 - 最初の版は「アラームのみ」を `INTERRUPTION_FILTER_ALARMS` で作った。Android はこのフィルタで着信モードを内部でサイレントにし
   (`applyZenToRingerMode`)、「車内」と重ねて順に終えると着信モードがサイレントのまま残った。「重要な通知のみ」型 + `ZenPolicy` に変えた
 - 「車内」モードは、設定画面からオンにすると設定アプリ自身が着信モードを内部でサイレントにし、オフで戻す(ZenLog の `com.android.settings`)。Volace の動作とは別
+
+### 8.10 Bluetooth 連動の確認(Pixel 9a / Android 17、2026-10-04、issue #29)
+
+イヤホン「Oladance Wearable Stereo」(A2DP・HFP)で、ルール「つないだら『サイレント』・外したら戻す」。接続・切断は `adb shell cmd bluetooth_manager disable / enable` で起こした(アプリはホーム画面の裏)。
+
+| 手順 | 結果 |
+|---|---|
+| 最初の版(受信側 `exported="false"`) | 接続の通知が Volace に届かなかった(`dumpsys activity broadcasts history` の配信先に無い) |
+| 接続(「マナー」適用中・BT のメディア 21) | `Background started FGS: Allowed code:BLUETOOTH_BROADCAST allowWiu:-1` で FGS が始まり、「サイレント」に。BT 側のメディアだけ 8 になり、本体スピーカーは 11 のまま |
+| 切断 | 「つなぐ前の状態」に戻った(バイブ、適用中は「マナー」、スピーカーのメディアは 11 のまま) |
+| 接続 → 手動で「マナー」→ 切断 | 戻さず「マナー」のまま(記録は「そのままにしました」) |
+| `set-hardening enable` で接続 | 読み直しで失敗を検出し、通知「…『サイレント』に切り替えられませんでした・タップすると切り替えます」。タップで切り替わり、通知も消えた |
+
+- `cmd media_session volume --set` はこの状態では効かなかった(音量制限)。BT 側の音量を戻すのは音量キー(`input keyevent KEYCODE_VOLUME_UP`)で行った
 
 ### 未検証(今後)
 - Pixel 11 Pro でのプロファイル適用とウィジェット配置(端末ロックのため未実施。

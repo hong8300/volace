@@ -1,5 +1,6 @@
 package com.hong.volace.ui.edit
 
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material3.RadioButton
 import com.hong.volace.audio.DndMode
@@ -328,14 +329,19 @@ fun ProfileEditScreen(
 
         if (showDeleteConfirm) {
             val schedule = remember(context) { VolaceDatabase.get(context).scheduleDao() }
+            val bluetooth = remember(context) { VolaceDatabase.get(context).bluetoothRuleDao() }
             val scheduled by produceState(0, current.id) { value = schedule.countForProfile(current.id) }
+            val onDevices by produceState(0, current.id) { value = bluetooth.countForProfile(current.id) }
             AlertDialog(
                 onDismissRequest = { showDeleteConfirm = false },
                 title = { Text(stringResource(R.string.delete_title)) },
                 text = {
                     Text(
-                        listOfNotNull(stringResource(R.string.delete_body, current.name), scheduleDeleteNote(scheduled))
-                            .joinToString("\n"),
+                        listOfNotNull(
+                            stringResource(R.string.delete_body, current.name),
+                            scheduleDeleteNote(scheduled),
+                            if (onDevices == 0) null else pluralStringResource(R.plurals.bt_delete_rules, onDevices, onDevices),
+                        ).joinToString("\n"),
                     )
                 },
                 confirmButton = {
@@ -347,6 +353,8 @@ fun ProfileEditScreen(
                                 schedule.deleteForProfile(current.id)
                                 withContext(Dispatchers.IO) { Schedules.onRulesChanged(context) }
                             }
+                            bluetooth.deleteForProfile(current.id)
+                            bluetooth.forgetDisconnectProfile(current.id)
                             WidgetRefresher.request(context)
                             onDone(resources.getString(R.string.deleted, current.name))
                         }

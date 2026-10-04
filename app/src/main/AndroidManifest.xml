@@ -9,6 +9,9 @@
         android:name="android.permission.WRITE_SETTINGS"
         tools:ignore="ProtectedPermissions" />
 
+    <!-- Switching on Bluetooth devices (DESIGN.md 5.18): their connections, and their names. -->
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+
     <!-- Timed profiles and the schedule (DESIGN.md 5.14, 5.15): Android 17 only lets an app change
          volumes from the background while a foreground service runs (8.7), which an exact alarm
          may start; the notifications showing them; picking them up again after a reboot. -->
@@ -141,6 +144,32 @@
             android:noHistory="true"
             android:taskAffinity=""
             android:theme="@style/Theme.Volace.Picker" />
+
+        <!-- Bluetooth: the connections, the alarm due right after one, and the service that switches. -->
+        <!-- Exported: the Bluetooth stack runs as its own uid, so a non-exported receiver never
+             gets these. The sender must hold BLUETOOTH_CONNECT, as the stack does. -->
+        <receiver
+            android:name=".bluetooth.BluetoothReceiver"
+            android:exported="true"
+            android:permission="android.permission.BLUETOOTH_CONNECT">
+            <intent-filter>
+                <action android:name="android.bluetooth.device.action.ACL_CONNECTED" />
+                <action android:name="android.bluetooth.device.action.ACL_DISCONNECTED" />
+            </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name=".bluetooth.BluetoothAlarmReceiver"
+            android:exported="false" />
+
+        <service
+            android:name=".bluetooth.BluetoothService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Switches to the volume profile the user chose for a Bluetooth device when it connects or disconnects. Android 17 only lets an app change volumes from the background while a foreground service runs." />
+        </service>
 
         <!-- Redraws the widgets when the volume is changed outside Volace (keys, system panel). -->
         <service
