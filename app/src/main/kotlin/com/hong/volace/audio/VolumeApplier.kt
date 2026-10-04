@@ -1,12 +1,38 @@
 package com.hong.volace.audio
 
+import android.app.NotificationManager
 import android.content.Context
 import android.media.AudioManager
+import android.util.Log
 import com.hong.volace.data.Profile
+
+private const val TAG = "VolumeApplier"
+
+/** What happened when a profile was applied. Only [Applied] may be recorded as "in effect". */
+sealed interface ApplyResult {
+    data object Applied : ApplyResult
+
+    /** "Do Not Disturb" access was revoked: nothing was changed. */
+    data object NeedsAccess : ApplyResult
+
+    /** Android refused some of the changes, so the profile is only partly in effect. */
+    data class Partial(val failed: List<String>) : ApplyResult
+}
+
+/** One line for a toast or snackbar. */
+fun ApplyResult.message(profileName: String): String = when (this) {
+    ApplyResult.Applied -> "「$profileName」を適用しました"
+    ApplyResult.NeedsAccess ->
+        "「サイレント モードへのアクセス」が許可されていないため適用できません。Volace を開いて許可してください"
+    is ApplyResult.Partial ->
+        "「$profileName」の一部（${failed.joinToString("・")}）を変更できませんでした"
+}
 
 class VolumeApplier(context: Context) {
     private val audioManager =
         context.applicationContext.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+    private val notificationManager =
+        context.applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
     fun maxVolume(stream: VolumeStream): Int = audioManager.getStreamMaxVolume(stream.streamType)
 
@@ -39,16 +65,31 @@ class VolumeApplier(context: Context) {
         }
     }
 
-    fun apply(profile: Profile) {
+    /**
+     * Applies [profile] and reports whether Android accepted all of it. Without DND access,
+     * changing the ringer mode throws, which used to be swallowed: the volumes were half written
+     * and the profile was still recorded as applied. Now nothing is touched in that case.
+     */
+    fun apply(profile: Profile): ApplyResult {
+        if (!notificationManager.isNotificationPolicyAccessGranted) return ApplyResult.NeedsAccess
+
+        val failed = mutableListOf<String>()
+        fun attempt(what: String, block: () -> Unit) {
+            runCatching(block).onFailure {
+                Log.w(TAG, "could not set $what for ${profile.name}", it)
+                if (what !in failed) failed += what
+            }
+        }
+
         // Set the mode first so the ring/notification streams are unmuted and actually accept the
         // indices we are about to write.
-        runCatching { audioManager.ringerMode = profile.ringerMode }
+        attempt(RINGER_MODE) { audioManager.ringerMode = profile.ringerMode }
 
         // STREAM_SYSTEM is aliased to STREAM_RING on stock Android audio policy (confirmed via
         // dumpsys audio on Pixel 9 Pro XL / Android 17): whichever of the two is set last wins.
         // Apply SYSTEM first so the user-facing Ringer value is the one that actually sticks.
         APPLY_ORDER.forEach { stream ->
-            runCatching {
+            attempt(stream.label) {
                 audioManager.setStreamVolume(stream.streamType, stream.valueOf(profile), 0)
             }
         }
@@ -56,15 +97,18 @@ class VolumeApplier(context: Context) {
         // Writing 0 to STREAM_RING makes the system drop into VIBRATE on its own, which silently
         // overrides an explicit "silent" profile. Re-assert the mode so the profile has the last
         // word, then restore the ring/notification indices the mode change may have bumped.
-        runCatching { audioManager.ringerMode = profile.ringerMode }
+        attempt(RINGER_MODE) { audioManager.ringerMode = profile.ringerMode }
         if (profile.ringerMode == AudioManager.RINGER_MODE_NORMAL) {
             listOf(VolumeStream.NOTIFICATION, VolumeStream.RINGER).forEach { stream ->
-                runCatching {
+                attempt(stream.label) {
                     audioManager.setStreamVolume(stream.streamType, stream.valueOf(profile), 0)
                 }
             }
         }
+        return if (failed.isEmpty()) ApplyResult.Applied else ApplyResult.Partial(failed)
     }
+
+    fun hasAccess(): Boolean = notificationManager.isNotificationPolicyAccessGranted
 
     private companion object {
         val APPLY_ORDER = listOf(
@@ -77,5 +121,7 @@ class VolumeApplier(context: Context) {
         )
 
         val RINGER_STREAMS = setOf(VolumeStream.RINGER, VolumeStream.NOTIFICATION)
+
+        const val RINGER_MODE = "着信モード"
     }
 }

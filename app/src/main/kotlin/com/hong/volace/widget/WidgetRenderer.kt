@@ -27,6 +27,8 @@ internal class WidgetState(
     val maxes: Map<VolumeStream, Int>,
     /** The active profile no longer matches the device: something else changed the volume. */
     val drifted: Boolean,
+    /** "Do Not Disturb" access; without it nothing can be applied, so cells open the app. */
+    val hasAccess: Boolean,
 ) {
     val active: Profile? get() = profiles.firstOrNull { it.isActive }
 
@@ -41,6 +43,7 @@ internal class WidgetState(
                 device = device,
                 maxes = VolumeStream.entries.associateWith { applier.maxVolume(it) },
                 drifted = active != null && !applier.matches(active, device),
+                hasAccess = applier.hasAccess(),
             )
         }
     }
@@ -109,6 +112,13 @@ object WidgetRenderer {
         val cell = CELLS[0]
         val look = lookOf(current, state)
         paintCell(views, cell, current, look)
+        if (!state.hasAccess) {
+            // The only place a 1×1 can say why taps stopped working.
+            views.setTextViewText(cell.name, "許可が必要")
+            views.setOnClickPendingIntent(cell.root, openAppPendingIntent(context))
+            views.setContentDescription(cell.root, NEEDS_ACCESS)
+            return
+        }
         views.setOnClickPendingIntent(cell.root, cyclePendingIntent(context))
         val status = if (look == CellLook.DRIFTED) "（適用後に音量が変更されています）" else ""
         views.setContentDescription(cell.root, "現在: ${current.name}$status。タップで次のプロファイル")
@@ -145,6 +155,11 @@ object WidgetRenderer {
             val look = lookOf(profile, state)
             views.setViewVisibility(cell.root, View.VISIBLE)
             paintCell(views, cell, profile, look)
+            if (!state.hasAccess) {
+                views.setOnClickPendingIntent(cell.root, openAppPendingIntent(context))
+                views.setContentDescription(cell.root, NEEDS_ACCESS)
+                continue
+            }
             views.setOnClickPendingIntent(cell.root, applyPendingIntent(context, profile.id))
             views.setContentDescription(
                 cell.root,
@@ -188,7 +203,10 @@ object WidgetRenderer {
         val barColor = active?.let { lighten(it.colorArgb, 0.25f) } ?: NEUTRAL_BAR
         val mode = state.device.ringerMode
 
-        views.setImageViewResource(R.id.status_mode_icon, ringerModeIcon(mode))
+        views.setImageViewResource(
+            R.id.status_mode_icon,
+            if (state.hasAccess) ringerModeIcon(mode) else R.drawable.ic_widget_warning,
+        )
         VolumeStream.entries.forEachIndexed { index, stream ->
             val refs = STATS[index]
             val max = (state.maxes[stream] ?: 1).coerceAtLeast(1)
@@ -199,7 +217,11 @@ object WidgetRenderer {
             if (panel == StatusPanel.FULL) views.setTextViewText(refs.value, level.toString())
         }
 
-        val drift = if (state.drifted && active != null) "「${active.name}」から変更あり" else null
+        val drift = when {
+            !state.hasAccess -> "許可が必要です（タップして開く）"
+            state.drifted && active != null -> "「${active.name}」から変更あり"
+            else -> null
+        }
         if (panel == StatusPanel.FULL) {
             views.setTextViewText(
                 R.id.status_mode_text,
@@ -295,6 +317,9 @@ object WidgetRenderer {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
     }
+
+    private const val NEEDS_ACCESS =
+        "「サイレント モードへのアクセス」が必要です。タップして Volace を開き、許可してください"
 
     /** Full scale of [android.graphics.drawable.ClipDrawable]'s level. */
     private const val MAX_LEVEL = 10_000
