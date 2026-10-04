@@ -221,6 +221,9 @@ Profile に **accent color (`colorArgb`)** と **アイコン (`iconKey`)** を�
   `setColorFilter` で色(適用中プロファイルの色)を指定している。`ProgressBar` の色付けより素直
 - 4×2 は `RemoteViews(Map<SizeF, RemoteViews>)` で高さ 180dp 未満なら音量表示を外した版を出す
   (縮めたときにプロファイルボタンが潰れないように。Pixel 9a の 4×2 は約 200dp)
+- 押したときはセル・パネルに波紋を出す(`android:foreground="@drawable/widget_press"`、角丸に合わせたマスク付き ripple。issue #30)
+- 4×1 は幅 250dp 未満になると音量タイルを外す(`RemoteViews(Map<SizeF, …>)`)。4×1 / 4×2 の最小幅は 180dp(4 列でも押せる大きさ)
+- ウィジェット選択画面での名前は「1×1 タップで切替」「4×1 選んで切替」「4×2 音量も確認」
 - `RemoteViews` で使えないビューがあるので(`Space` 等)、レイアウトは
   `FrameLayout` / `LinearLayout` / `ImageView` / `TextView` だけで組んでいる
 

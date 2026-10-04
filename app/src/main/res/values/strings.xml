@@ -156,9 +156,9 @@
     <string name="hint_silent">着信・通知は鳴らず、バイブもしません。メディア・アラーム・通話は下の音量のまま鳴ります。Android の仕様でサイレント モード（DND）もオンになり、ステータスバーはバイブ表示になります（「着信音」に戻すと自動で解除）。</string>
     <string name="note_silenced">このモードでは鳴りません</string>
     <string name="note_system_linked">着信音と連動（着信音の値が優先）</string>
-    <string name="widget_label_1x1" translatable="false">Volace 1×1</string>
-    <string name="widget_label_1x4" translatable="false">Volace 4×1</string>
-    <string name="widget_label_2x4" translatable="false">Volace 4×2</string>
+    <string name="widget_label_1x1">1×1 タップで切替</string>
+    <string name="widget_label_1x4">4×1 選んで切替</string>
+    <string name="widget_label_2x4">4×2 音量も確認</string>
     <string name="widget_desc_1x1">タップで次のプロファイルへ切り替え（1マス）。横に広げると一覧から選べます</string>
     <string name="widget_desc_1x4">プロファイル4個をワンタップ切替 + 現在の音量（4×1）</string>
     <string name="widget_desc_2x4">現在の音量 + プロファイル8個をワンタップ切替（4×2）</string>

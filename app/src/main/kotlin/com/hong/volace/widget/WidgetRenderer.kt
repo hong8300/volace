@@ -74,6 +74,9 @@ object WidgetRenderer {
     /** Below this height a 4×2 cannot fit the status strip above two rows of profiles. */
     private const val FULL_STATUS_MIN_HEIGHT_DP = 180f
 
+    /** Below this a 4×1 cannot fit four profiles and the volume tile at a tappable size. */
+    private const val ROW_STATUS_MIN_WIDTH_DP = 250f
+
     /** About two home-screen cells: from here the 1×1 has room for the "選ぶ" tile. */
     private const val WIDE_SINGLE_MIN_WIDTH_DP = 150f
 
@@ -88,6 +91,14 @@ object WidgetRenderer {
                     SizeF(40f, 40f) to buildOne(context, style, state, showStatus = true),
                     SizeF(WIDE_SINGLE_MIN_WIDTH_DP, 40f) to
                         buildOne(context, style, state, showStatus = true, layout = R.layout.widget_1x1_wide),
+                ),
+            )
+        }
+        if (style.status == StatusPanel.MINI) {
+            return RemoteViews(
+                mapOf(
+                    SizeF(110f, 40f) to buildOne(context, style, state, showStatus = false),
+                    SizeF(ROW_STATUS_MIN_WIDTH_DP, 40f) to buildOne(context, style, state, showStatus = true),
                 ),
             )
         }
