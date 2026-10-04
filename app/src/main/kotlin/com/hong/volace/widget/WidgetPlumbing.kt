@@ -8,12 +8,13 @@ import android.content.Context
 import android.content.Intent
 import android.util.Log
 import com.hong.volace.audio.ApplyResult
-import com.hong.volace.audio.VolumeApplier
-import com.hong.volace.data.VolaceDatabase
+import com.hong.volace.audio.ProfileSwitcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 private const val TAG = "VolaceWidget"
 
@@ -40,7 +41,13 @@ internal object WidgetScope {
 /** Redraws every placed Volace widget of every style. */
 object WidgetRefresher {
 
-    suspend fun refreshAll(context: Context) {
+    /**
+     * One redraw at a time. Each pass reads the state once it holds the lock, so passes finish in
+     * order and the last one on screen is never older than an earlier one.
+     */
+    private val drawLock = Mutex()
+
+    suspend fun refreshAll(context: Context) = drawLock.withLock {
         val app = context.applicationContext
         val manager = AppWidgetManager.getInstance(app)
         val placed = WidgetStyle.entries
@@ -88,24 +95,14 @@ class VolumeApplyReceiver : BroadcastReceiver() {
         val pending = goAsync()
 
         WidgetScope.run(pending) {
-            val dao = VolaceDatabase.get(app).profileDao()
-            val target = when (action) {
-                ACTION_APPLY -> dao.getById(profileId)
-                else -> {
-                    val all = dao.getAllOnce()
-                    // indexOfFirst returns -1 when nothing is active, which lands on index 0.
-                    all.getOrNull((all.indexOfFirst { it.isActive } + 1).mod(all.size.coerceAtLeast(1)))
-                }
+            val outcome = when (action) {
+                ACTION_APPLY -> ProfileSwitcher.apply(app, profileId)
+                else -> ProfileSwitcher.cycle(app)
             }
-            if (target != null) {
-                val result = VolumeApplier(app).apply(target)
-                if (result == ApplyResult.Applied) {
-                    dao.applyActive(target.id)
-                } else {
-                    // No toast: Android drops toasts from a background app that has no notification
-                    // permission. The redraw below is what tells the user (see WidgetRenderer).
-                    Log.w(TAG, "${target.name} not applied: $result")
-                }
+            if (outcome != null && outcome.result != ApplyResult.Applied) {
+                // No toast: Android drops toasts from a background app that has no notification
+                // permission. The redraw below is what tells the user (see WidgetRenderer).
+                Log.w(TAG, "${outcome.profile.name} not applied: ${outcome.result}")
             }
             // Also flips the widgets to "open the app" cells when access turned out to be missing.
             WidgetRefresher.refreshAll(app)
