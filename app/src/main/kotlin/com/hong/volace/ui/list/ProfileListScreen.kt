@@ -51,6 +51,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -89,6 +90,9 @@ fun ProfileListScreen(
     volumeApplier: VolumeApplier,
     onEditProfile: (Long) -> Unit,
     onAddProfile: () -> Unit,
+    /** Left by the edit screen ("保存しました" etc.); shown once, then [onMessageShown]. */
+    message: String? = null,
+    onMessageShown: () -> Unit = {},
 ) {
     val profiles by dao.observeAll().collectAsState(initial = emptyList())
     val scope = rememberCoroutineScope()
@@ -96,6 +100,12 @@ fun ProfileListScreen(
     var reorderMode by remember { mutableStateOf(false) }
     var showWidgetPicker by remember { mutableStateOf(false) }
     val snackbar = remember { SnackbarHostState() }
+    LaunchedEffect(message) {
+        if (message == null) return@LaunchedEffect
+        snackbar.currentSnackbarData?.dismiss()
+        snackbar.showSnackbar(message)
+        onMessageShown()
+    }
     val maxes = remember { VolumeStream.entries.associateWith { volumeApplier.maxVolume(it) } }
     val device by rememberDeviceVolumes(volumeApplier)
     val active = profiles.firstOrNull { it.isActive }

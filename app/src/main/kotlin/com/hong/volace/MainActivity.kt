@@ -51,6 +51,7 @@ class MainActivity : ComponentActivity() {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     val dndGranted by dndGrantedState
                     var screen by remember { mutableStateOf<Screen>(Screen.ProfileList) }
+                    var message by remember { mutableStateOf<String?>(null) }
 
                     if (!dndGranted) {
                         OnboardingScreen()
@@ -61,12 +62,17 @@ class MainActivity : ComponentActivity() {
                                 volumeApplier = volumeApplier,
                                 onEditProfile = { id -> screen = Screen.ProfileEdit(id) },
                                 onAddProfile = { screen = Screen.ProfileEdit(null) },
+                                message = message,
+                                onMessageShown = { message = null },
                             )
                             is Screen.ProfileEdit -> ProfileEditScreen(
                                 profileId = current.profileId,
                                 dao = db.profileDao(),
                                 volumeApplier = volumeApplier,
-                                onDone = { screen = Screen.ProfileList },
+                                onDone = { result ->
+                                    message = result
+                                    screen = Screen.ProfileList
+                                },
                             )
                         }
                     }
