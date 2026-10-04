@@ -26,6 +26,16 @@ interface ProfileDao {
     @Query("SELECT COALESCE(MAX(orderIndex), -1) + 1 FROM profiles")
     suspend fun nextOrderIndex(): Int
 
+    @Query("DELETE FROM profiles")
+    suspend fun deleteAll()
+
+    /** Restoring a backup in place of everything, all or nothing. */
+    @Transaction
+    suspend fun replaceAll(profiles: List<Profile>) {
+        deleteAll()
+        insertAll(profiles)
+    }
+
     /** Checks and inserts in one transaction, so two launches racing cannot seed twice. */
     @Transaction
     suspend fun insertIfEmpty(profiles: List<Profile>) {

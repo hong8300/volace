@@ -78,6 +78,7 @@ import com.hong.volace.data.Profile
 import com.hong.volace.data.ProfileDao
 import com.hong.volace.data.icon
 import com.hong.volace.tile.ProfileTileService
+import com.hong.volace.ui.backup.BackupDialog
 import com.hong.volace.widget.WidgetRefresher
 import com.hong.volace.widget.WidgetStyle
 import com.hong.volace.widget.requestPinWidget
@@ -104,6 +105,7 @@ fun ProfileListScreen(
     val context = LocalContext.current
     var reorderMode by remember { mutableStateOf(false) }
     var showWidgetPicker by remember { mutableStateOf(false) }
+    var showBackup by remember { mutableStateOf(false) }
     val snackbar = remember { SnackbarHostState() }
     LaunchedEffect(message) {
         if (message == null) return@LaunchedEffect
@@ -119,6 +121,19 @@ fun ProfileListScreen(
     if (showWidgetPicker) {
         AddWidgetDialog(onDismiss = { showWidgetPicker = false })
     }
+    if (showBackup) {
+        BackupDialog(
+            dao = dao,
+            volumeApplier = volumeApplier,
+            onDismiss = { showBackup = false },
+            onMessage = { text ->
+                scope.launch {
+                    snackbar.currentSnackbarData?.dismiss()
+                    snackbar.showSnackbar(text)
+                }
+            },
+        )
+    }
 
     // Every action is spelled out: bare icons (a widget grid, a check mark) were not recognised.
     Scaffold(
@@ -127,6 +142,7 @@ fun ProfileListScreen(
             TopAppBar(
                 title = { Text("Volace", fontWeight = FontWeight.Bold) },
                 actions = {
+                    TextButton(onClick = { showBackup = true }) { Text("バックアップ") }
                     if (profiles.size > 1) {
                         TextButton(onClick = { reorderMode = !reorderMode }) {
                             Icon(
