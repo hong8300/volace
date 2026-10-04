@@ -1,5 +1,8 @@
 package com.hong.volace.shortcut
 
+import android.graphics.Paint
+import com.hong.volace.ui.theme.IconStyle
+import com.hong.volace.ui.theme.SkinStore
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ShortcutInfo
@@ -38,7 +41,9 @@ object ProfileShortcuts {
         // Launchers show about four; more would just be cut.
         val shown = profiles.take(minOf(4, manager.maxShortcutCountPerActivity))
 
-        val signature = shown.joinToString("|") { "${it.id}:${it.name}:${it.iconKey}:${it.colorArgb}" }
+        val emoji = SkinStore.iconStyle(context) == IconStyle.EMOJI
+        val signature = shown.joinToString("|") { "${it.id}:${it.name}:${it.iconKey}:${it.colorArgb}" } +
+            if (emoji) "|emoji" else ""
         val prefs = app.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         if (prefs.getString(KEY_SIGNATURE, null) == signature) return
 
@@ -79,6 +84,16 @@ object ProfileShortcuts {
         val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
         canvas.drawColor(profile.colorArgb)
+        if (SkinStore.iconStyle(context) == IconStyle.EMOJI) {
+            // The "かわいい" icon style: the emoji in its own colours.
+            val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                textSize = glyph.toFloat()
+                textAlign = Paint.Align.CENTER
+            }
+            val baseline = size / 2f - (paint.descent() + paint.ascent()) / 2f
+            canvas.drawText(profile.icon.emoji, size / 2f, baseline, paint)
+            return Icon.createWithAdaptiveBitmap(bitmap)
+        }
         context.getDrawable(profile.icon.res)?.mutate()?.apply {
             colorFilter = PorterDuffColorFilter(contentColorOn(profile.colorArgb), PorterDuff.Mode.SRC_IN)
             val inset = (size - glyph) / 2

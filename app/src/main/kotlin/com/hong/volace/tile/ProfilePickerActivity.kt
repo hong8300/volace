@@ -1,5 +1,6 @@
 package com.hong.volace.tile
 
+import com.hong.volace.ui.theme.ProfileIconView
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.IconButton
@@ -227,12 +228,7 @@ private fun PickerRow(profile: Profile, drifted: Boolean, onTimed: () -> Unit, o
                     .background(if (active) accent else accent.copy(alpha = 0.20f)),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(
-                    painter = painterResource(profile.icon.res),
-                    contentDescription = null,
-                    tint = if (active) readableOn(accent) else accent,
-                    modifier = Modifier.size(22.dp),
-                )
+                ProfileIconView(profile.icon, tint = if (active) readableOn(accent) else accent, size = 22.dp)
             }
             Spacer(Modifier.width(12.dp))
             Text(

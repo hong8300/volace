@@ -457,6 +457,14 @@
                 android:src="@drawable/ic_profile_volume_up"
                 android:tint="#FFFFFFFF"
                 android:contentDescription="@null" />
+            <TextView
+                android:id="@+id/cell_0_emoji"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:includeFontPadding="false"
+                android:textSize="19sp"
+                android:visibility="gone"
+                android:importantForAccessibility="no" />
 
             <TextView
                 android:id="@+id/cell_0_name"
@@ -514,6 +522,14 @@
                 android:src="@drawable/ic_profile_night"
                 android:tint="#FFFFFFFF"
                 android:contentDescription="@null" />
+            <TextView
+                android:id="@+id/cell_1_emoji"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:includeFontPadding="false"
+                android:textSize="19sp"
+                android:visibility="gone"
+                android:importantForAccessibility="no" />
 
             <TextView
                 android:id="@+id/cell_1_name"
@@ -571,6 +587,14 @@
                 android:src="@drawable/ic_profile_music"
                 android:tint="#FFFFFFFF"
                 android:contentDescription="@null" />
+            <TextView
+                android:id="@+id/cell_2_emoji"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:includeFontPadding="false"
+                android:textSize="19sp"
+                android:visibility="gone"
+                android:importantForAccessibility="no" />
 
             <TextView
                 android:id="@+id/cell_2_name"
@@ -628,6 +652,14 @@
                 android:src="@drawable/ic_profile_work"
                 android:tint="#FFFFFFFF"
                 android:contentDescription="@null" />
+            <TextView
+                android:id="@+id/cell_3_emoji"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:includeFontPadding="false"
+                android:textSize="19sp"
+                android:visibility="gone"
+                android:importantForAccessibility="no" />
 
             <TextView
                 android:id="@+id/cell_3_name"
@@ -693,6 +725,14 @@
                 android:src="@drawable/ic_profile_car"
                 android:tint="#FFFFFFFF"
                 android:contentDescription="@null" />
+            <TextView
+                android:id="@+id/cell_4_emoji"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:includeFontPadding="false"
+                android:textSize="19sp"
+                android:visibility="gone"
+                android:importantForAccessibility="no" />
 
             <TextView
                 android:id="@+id/cell_4_name"
@@ -750,6 +790,14 @@
                 android:src="@drawable/ic_profile_home"
                 android:tint="#FFFFFFFF"
                 android:contentDescription="@null" />
+            <TextView
+                android:id="@+id/cell_5_emoji"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:includeFontPadding="false"
+                android:textSize="19sp"
+                android:visibility="gone"
+                android:importantForAccessibility="no" />
 
             <TextView
                 android:id="@+id/cell_5_name"
@@ -807,6 +855,14 @@
                 android:src="@drawable/ic_profile_alarm"
                 android:tint="#FFFFFFFF"
                 android:contentDescription="@null" />
+            <TextView
+                android:id="@+id/cell_6_emoji"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:includeFontPadding="false"
+                android:textSize="19sp"
+                android:visibility="gone"
+                android:importantForAccessibility="no" />
 
             <TextView
                 android:id="@+id/cell_6_name"
@@ -864,6 +920,14 @@
                 android:src="@drawable/ic_profile_bell"
                 android:tint="#FFFFFFFF"
                 android:contentDescription="@null" />
+            <TextView
+                android:id="@+id/cell_7_emoji"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:includeFontPadding="false"
+                android:textSize="19sp"
+                android:visibility="gone"
+                android:importantForAccessibility="no" />
 
             <TextView
                 android:id="@+id/cell_7_name"

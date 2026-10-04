@@ -1,5 +1,7 @@
 package com.hong.volace.ui.edit
 
+import com.hong.volace.ui.theme.ProfileIconView
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material3.RadioButton
@@ -380,12 +382,7 @@ fun ProfileEditScreen(
                     modifier = Modifier.size(52.dp).clip(CircleShape).background(accent),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Icon(
-                        painter = painterResource(current.icon.res),
-                        contentDescription = null,
-                        tint = readableOn(accent),
-                        modifier = Modifier.size(28.dp),
-                    )
+                    ProfileIconView(current.icon, tint = readableOn(accent), size = 28.dp)
                 }
                 Spacer(Modifier.width(12.dp))
                 OutlinedTextField(
@@ -485,11 +482,13 @@ fun ProfileEditScreen(
 
             // Looks come last: most visits are to change what the profile sounds like.
             SectionTitle(stringResource(R.string.section_color))
-            LazyRow(
+            // Wrapped rather than one scrolling row: there are almost thirty of them.
+            FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
-                contentPadding = PaddingValues(vertical = 4.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier.padding(vertical = 4.dp),
             ) {
-                items(ProfilePalette.COLORS) { color ->
+                ProfilePalette.COLORS.forEach { color ->
                     val selected = color == current.colorArgb
                     Box(
                         modifier = Modifier
@@ -528,11 +527,13 @@ fun ProfileEditScreen(
             }
 
             SectionTitle(stringResource(R.string.section_icon))
-            LazyRow(
+            // Wrapped rather than one scrolling row: there are thirty of them.
+            FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
-                contentPadding = PaddingValues(vertical = 4.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier.padding(vertical = 4.dp),
             ) {
-                items(ProfileIcon.entries) { entry ->
+                ProfileIcon.entries.forEach { entry ->
                     val selected = entry.key == current.iconKey
                     Box(
                         modifier = Modifier
@@ -548,11 +549,11 @@ fun ProfileEditScreen(
                             ),
                         contentAlignment = Alignment.Center,
                     ) {
-                        Icon(
-                            painter = painterResource(entry.res),
-                            contentDescription = stringResource(entry.label),
+                        ProfileIconView(
+                            entry,
                             tint = if (selected) readableOn(accent) else MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(23.dp),
+                            size = 23.dp,
+                            contentDescription = stringResource(entry.label),
                         )
                     }
                 }

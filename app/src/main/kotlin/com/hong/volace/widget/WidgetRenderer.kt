@@ -1,5 +1,6 @@
 package com.hong.volace.widget
 
+import com.hong.volace.ui.theme.IconStyle
 import com.hong.volace.audio.DndState
 import com.hong.volace.audio.DndModes
 import com.hong.volace.timer.ProfileTimer
@@ -45,6 +46,10 @@ internal class WidgetState(
     val timer: ProfileTimer? = null,
     /** "Do Not Disturb" now, for the status read-out. */
     val dnd: DndState = DndState.OFF,
+    /** Line icons or emoji on the cells. */
+    val iconStyle: IconStyle = IconStyle.STANDARD,
+    /** The pastel skins' rounder cells and frame (Skin.rounded). */
+    val rounded: Boolean = false,
 ) {
     val active: Profile? get() = profiles.firstOrNull { it.isActive }
 
@@ -74,6 +79,8 @@ internal class WidgetState(
                 palette = WidgetPalette.of(context, SkinStore.current(context)),
                 timer = ProfileTimers.current(context),
                 dnd = DndModes(context).state(),
+                iconStyle = SkinStore.iconStyle(context),
+                rounded = SkinStore.current(context).rounded,
             )
         }
     }
@@ -144,6 +151,8 @@ object WidgetRenderer {
     ): RemoteViews {
         val views = RemoteViews(context.packageName, layout)
         val p = state.palette
+        // The shape first: the tint below colours whichever background is set.
+        if (state.rounded) views.setInt(android.R.id.background, "setBackgroundResource", R.drawable.widget_root_bg_round)
         views.tintBackground(android.R.id.background, p) { it.background }
         if (layout == R.layout.widget_1x1_wide) {
             views.setTextViewText(R.id.pick_title, context.getString(R.string.widget_pick))
@@ -163,7 +172,7 @@ object WidgetRenderer {
             if (showStatus) renderStatus(context, views, style.status, state)
         }
         when {
-            state.profiles.isEmpty() -> renderEmpty(context, views, style, state.palette)
+            state.profiles.isEmpty() -> renderEmpty(context, views, style, state)
             style.cycles -> renderCycle(context, views, state)
             else -> renderGrid(context, views, style, state)
         }
@@ -175,7 +184,7 @@ object WidgetRenderer {
         val current = state.active ?: state.profiles.first()
         val cell = CELLS[0]
         val look = lookOf(current, state)
-        paintCell(views, cell, current, look, state.palette)
+        paintCell(views, cell, current, look, state)
         if (!state.hasAccess) {
             // The only place a 1×1 can say why taps stopped working.
             views.setTextViewText(cell.name, context.getString(R.string.widget_needs_access))
@@ -238,7 +247,7 @@ object WidgetRenderer {
             }
             val look = lookOf(profile, state)
             views.setViewVisibility(cell.root, View.VISIBLE)
-            paintCell(views, cell, profile, look, state.palette)
+            paintCell(views, cell, profile, look, state)
             if (!state.hasAccess) {
                 views.setOnClickPendingIntent(cell.root, openAppPendingIntent(context))
                 views.setContentDescription(cell.root, context.getString(R.string.widget_cd_needs_access))
@@ -256,9 +265,13 @@ object WidgetRenderer {
         }
     }
 
-    private fun renderEmpty(context: Context, views: RemoteViews, style: WidgetStyle, palette: WidgetPalette) {
+    private fun renderEmpty(context: Context, views: RemoteViews, style: WidgetStyle, state: WidgetState) {
+        val palette = state.palette
         val cell = CELLS[0]
         views.setViewVisibility(cell.root, View.VISIBLE)
+        cellShapes(views, cell, state.rounded)
+        views.setViewVisibility(cell.icon, View.VISIBLE)
+        views.setViewVisibility(cell.emoji, View.GONE)
         views.color(cell.bg, "setColorFilter", palette) { it.emptyCell }
         views.setInt(cell.bg, "setImageAlpha", 200)
         views.setViewVisibility(cell.ring, View.GONE)
@@ -294,6 +307,7 @@ object WidgetRenderer {
         }
         val mode = state.device.ringerMode
 
+        if (state.rounded) views.setInt(R.id.status_panel, "setBackgroundResource", R.drawable.widget_status_bg_round)
         views.tintBackground(R.id.status_panel, p) { it.panel }
         views.color(R.id.status_mode_icon, "setColorFilter", p) { it.text }
 
@@ -388,8 +402,10 @@ object WidgetRenderer {
         cell: CellRefs,
         profile: Profile,
         look: CellLook,
-        palette: WidgetPalette,
+        state: WidgetState,
     ) {
+        val palette = state.palette
+        cellShapes(views, cell, state.rounded)
         val active = look == CellLook.ACTIVE
         // On the full-colour fill: white, or near black on light colours (amber, …).
         val onFill = contentColorOn(profile.colorArgb)
@@ -402,13 +418,28 @@ object WidgetRenderer {
         views.color(cell.ring, "setColorFilter", palette) { if (active) onFill else tintFor(profile.colorArgb, it) }
         views.setInt(cell.ring, "setImageAlpha", RING_ALPHA)
 
-        views.setImageViewResource(cell.icon, profile.icon.res)
-        // Inactive cells sit on a dim tint of their own colour, so a toned version of that colour
-        // keeps each profile recognisable at a glance without shouting.
-        views.color(cell.icon, "setColorFilter", palette) { if (active) onFill else tintFor(profile.colorArgb, it) }
+        val emoji = state.iconStyle == IconStyle.EMOJI
+        views.setViewVisibility(cell.icon, if (emoji) View.GONE else View.VISIBLE)
+        views.setViewVisibility(cell.emoji, if (emoji) View.VISIBLE else View.GONE)
+        if (emoji) {
+            // Emoji keep their own colours; a dim one marks a profile that is not applied.
+            views.setTextViewText(cell.emoji, profile.icon.emoji)
+            views.setFloat(cell.emoji, "setAlpha", if (look == CellLook.IDLE) 0.75f else 1f)
+        } else {
+            views.setImageViewResource(cell.icon, profile.icon.res)
+            // Inactive cells sit on a dim tint of their own colour, so a toned version of that colour
+            // keeps each profile recognisable at a glance without shouting.
+            views.color(cell.icon, "setColorFilter", palette) { if (active) onFill else tintFor(profile.colorArgb, it) }
+        }
 
         views.setTextViewText(cell.name, profile.name)
         views.color(cell.name, "setTextColor", palette) { if (active) onFill else it.subText }
+    }
+
+    /** The cell's fill and outline: rounder with the pastel skins. */
+    private fun cellShapes(views: RemoteViews, cell: CellRefs, rounded: Boolean) {
+        views.setImageViewResource(cell.bg, if (rounded) R.drawable.widget_cell_fill_round else R.drawable.widget_cell_fill)
+        views.setImageViewResource(cell.ring, if (rounded) R.drawable.widget_cell_ring_round else R.drawable.widget_cell_ring)
     }
 
     /** A profile's colour toned to stand out on the skin's background: lighter on dark, darker on light. */

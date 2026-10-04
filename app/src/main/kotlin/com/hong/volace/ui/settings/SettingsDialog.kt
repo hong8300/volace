@@ -1,5 +1,16 @@
 package com.hong.volace.ui.settings
 
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.ui.semantics.Role
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.material3.FilterChip
+import com.hong.volace.data.ProfileIcon
+import com.hong.volace.ui.theme.IconStyle
+import com.hong.volace.ui.theme.ProfileIconView
+import com.hong.volace.ui.theme.SkinGroup
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -80,45 +91,88 @@ fun SettingsDialog(
 
 private enum class Page { MENU, SKIN, BACKUP }
 
+/**
+ * "スキン": the icon style (line icons or emoji) on top, then the skins by group. Both apply at
+ * once, to the app and the widgets.
+ */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun SkinDialog(current: Skin, onDismiss: () -> Unit) {
     val context = LocalContext.current
+    val iconStyle by SkinStore.iconState(context).collectAsState()
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.settings_skin)) },
         text = {
             Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-                Skin.entries.forEach { skin ->
-                    val selected = skin == current
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                SkinStore.set(context, skin)
-                                // The widgets take their colours from the skin too.
+                Text(stringResource(R.string.icon_style_title), style = MaterialTheme.typography.titleSmall)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.selectableGroup()) {
+                    IconStyle.entries.forEach { style ->
+                        FilterChip(
+                            selected = style == iconStyle,
+                            onClick = {
+                                SkinStore.setIconStyle(context, style)
+                                // The widgets and launcher shortcuts draw the icons too.
                                 WidgetRefresher.request(context)
-                            }
-                            .padding(vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        RadioButton(selected = selected, onClick = null)
-                        Spacer(Modifier.width(8.dp))
-                        Swatch(skin)
-                        Spacer(Modifier.width(12.dp))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(stringResource(skin.label), fontWeight = FontWeight.SemiBold)
-                            Text(
-                                stringResource(skin.description),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
+                            },
+                            label = { Text(stringResource(style.label)) },
+                        )
                     }
+                }
+                // What the style looks like, on a few of the icons.
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                    listOf(ProfileIcon.BELL, ProfileIcon.MUSIC, ProfileIcon.NIGHT, ProfileIcon.CAT, ProfileIcon.FLOWER).forEach {
+                        ProfileIconView(it, tint = MaterialTheme.colorScheme.primary, size = 22.dp)
+                    }
+                }
+                Text(
+                    stringResource(R.string.icon_style_desc),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
+                SkinGroup.entries.forEach { group ->
+                    Text(
+                        stringResource(group.label),
+                        style = MaterialTheme.typography.titleSmall,
+                        modifier = Modifier.padding(top = 14.dp, bottom = 2.dp),
+                    )
+                    Skin.entries.filter { it.group == group }.forEach { skin -> SkinRow(skin, skin == current) }
                 }
             }
         },
         confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.close)) } },
     )
+}
+
+/** One skin: its swatch, name and description; picking it applies it at once. */
+@Composable
+private fun SkinRow(skin: Skin, selected: Boolean) {
+    val context = LocalContext.current
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .selectable(selected = selected, role = Role.RadioButton) {
+                SkinStore.set(context, skin)
+                // The widgets take their colours from the skin too.
+                WidgetRefresher.request(context)
+            }
+            .padding(vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        RadioButton(selected = selected, onClick = null)
+        Spacer(Modifier.width(8.dp))
+        Swatch(skin)
+        Spacer(Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(stringResource(skin.label), fontWeight = FontWeight.SemiBold)
+            Text(
+                stringResource(skin.description),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
 }
 
 /** A small widget-like chip in the skin's own colours (light half / dark half for AUTO, DYNAMIC). */

@@ -1,5 +1,7 @@
 package com.hong.volace.ui.list
 
+import com.hong.volace.ui.theme.cardShape
+import com.hong.volace.ui.theme.ProfileIconView
 import com.hong.volace.bluetooth.BluetoothSwitch
 import com.hong.volace.data.BluetoothRuleDao
 import com.hong.volace.ui.bluetooth.BluetoothSummaryCard
@@ -474,7 +476,7 @@ private fun ProfileRow(
     val active = profile.isActive && !drifted
 
     Surface(
-        shape = RoundedCornerShape(20.dp),
+        shape = cardShape(),
         color = if (active) accent.copy(alpha = 0.16f) else MaterialTheme.colorScheme.surfaceContainer,
         border = when {
             active -> BorderStroke(2.dp, accent)
@@ -494,12 +496,7 @@ private fun ProfileRow(
                         .background(if (active) accent else accent.copy(alpha = 0.20f)),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Icon(
-                        painter = painterResource(profile.icon.res),
-                        contentDescription = null,
-                        tint = if (active) readableOn(accent) else accent,
-                        modifier = Modifier.size(24.dp),
-                    )
+                    ProfileIconView(profile.icon, tint = if (active) readableOn(accent) else accent, size = 24.dp)
                 }
 
                 Spacer(Modifier.width(12.dp))
