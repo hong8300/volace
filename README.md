@@ -57,6 +57,15 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 無い場合は PC ごとの `~/.android/debug.keystore` で署名され、別のPCで入れたアプリには上書きできません
 （`INSTALL_FAILED_UPDATE_INCOMPATIBLE`）。
 
+テスト（Room のマイグレーション。JVM 上の Robolectric で動き、端末は不要）:
+
+```sh
+./gradlew testDebugUnitTest
+```
+
+端末に入れるビルドごとに `app/build.gradle.kts` の `versionCode` を上げてください。
+DB のスキーマを変えるときは DESIGN.md 3章の「スキーマ変更のルール」に従ってください。
+
 リリースビルドには署名設定が必要です。`keystore.properties.sample` をコピーして
 自分のキーストア情報を書いてください（`keystore.properties` は `.gitignore` 済み）。
 
