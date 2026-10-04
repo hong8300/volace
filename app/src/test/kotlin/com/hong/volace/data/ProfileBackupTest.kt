@@ -1,5 +1,6 @@
 package com.hong.volace.data
 
+import com.hong.volace.audio.VolumeStream
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
@@ -37,6 +38,16 @@ class ProfileBackupTest {
         assertEquals(9, meeting.voiceCallVolume)
         assertEquals(0xFF7E57C2.toInt(), meeting.colorArgb)
         assertEquals("work", meeting.iconKey)
+    }
+
+    @Test
+    fun keptStreams_roundTrip_andOlderFilesKeepNothing() {
+        val keeping = profiles[0].copy(keepMask = VolumeStream.MEDIA.keepBit or VolumeStream.ALARM.keepBit)
+        val back = ProfileBackup.fromJson(ProfileBackup.toJson(listOf(keeping)))
+        assertEquals(keeping.keepMask, back[0].keepMask)
+
+        val older = """{"format":"volace-profiles","version":1,"profiles":[{"name":"x","ringerMode":2,"ring":1,"notification":1,"media":1,"alarm":1,"voiceCall":1,"system":1,"color":0}]}"""
+        assertEquals(0, ProfileBackup.fromJson(older)[0].keepMask)
     }
 
     @Test

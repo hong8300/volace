@@ -72,6 +72,7 @@ import com.hong.volace.audio.ProfileSwitcher
 import com.hong.volace.audio.VolumeApplier
 import com.hong.volace.audio.message
 import com.hong.volace.audio.VolumeStream
+import com.hong.volace.audio.isKeptBy
 import com.hong.volace.audio.ringerModeLabel
 import com.hong.volace.audio.valueOf
 import com.hong.volace.data.Profile
@@ -522,7 +523,8 @@ private fun MiniVolumeBars(profile: Profile, maxes: Map<VolumeStream, Int>, acce
     Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.Bottom) {
         VolumeStream.entries.forEach { stream ->
             val max = (maxes[stream] ?: 1).coerceAtLeast(1)
-            val value = stream.valueOf(profile).coerceIn(0, max)
+            // A stream the profile leaves alone shows an empty track ("変更しない").
+            val value = if (stream.isKeptBy(profile)) 0 else stream.valueOf(profile).coerceIn(0, max)
             val fraction = value.toFloat() / max
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Box(

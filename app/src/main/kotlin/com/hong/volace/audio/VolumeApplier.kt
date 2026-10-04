@@ -62,6 +62,7 @@ class VolumeApplier(context: Context) {
         val ringerMuted = expected.ringerMode != AudioManager.RINGER_MODE_NORMAL
         return VolumeStream.entries.all { stream ->
             when {
+                stream.isKeptBy(expected) -> true // whatever the device has is right
                 stream == VolumeStream.SYSTEM -> true
                 ringerMuted && stream in RINGER_STREAMS -> true
                 else -> device.levelOf(stream) == stream.valueOf(expected)
@@ -95,7 +96,7 @@ class VolumeApplier(context: Context) {
         // STREAM_SYSTEM is aliased to STREAM_RING on stock Android audio policy (confirmed via
         // dumpsys audio on Pixel 9 Pro XL / Android 17): whichever of the two is set last wins.
         // Apply SYSTEM first so the user-facing Ringer value is the one that actually sticks.
-        APPLY_ORDER.forEach { stream ->
+        APPLY_ORDER.filterNot { it.isKeptBy(profile) }.forEach { stream ->
             attempt(stream.label) {
                 audioManager.setStreamVolume(stream.streamType, stream.valueOf(profile), 0)
             }
@@ -106,7 +107,7 @@ class VolumeApplier(context: Context) {
         // word, then restore the ring/notification indices the mode change may have bumped.
         attempt(RINGER_MODE) { audioManager.ringerMode = profile.ringerMode }
         if (profile.ringerMode == AudioManager.RINGER_MODE_NORMAL) {
-            listOf(VolumeStream.NOTIFICATION, VolumeStream.RINGER).forEach { stream ->
+            listOf(VolumeStream.NOTIFICATION, VolumeStream.RINGER).filterNot { it.isKeptBy(profile) }.forEach { stream ->
                 attempt(stream.label) {
                     audioManager.setStreamVolume(stream.streamType, stream.valueOf(profile), 0)
                 }

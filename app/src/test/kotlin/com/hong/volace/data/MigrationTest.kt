@@ -56,6 +56,29 @@ class MigrationTest {
         }
     }
 
+    @Test
+    fun migrate2To3_keepsEveryProfileAndChangesNothingByDefault() {
+        helper.createDatabase(DB, 2).use { db ->
+            db.execSQL(
+                "INSERT INTO profiles (id, name, orderIndex, ringerMode, ringVolume, " +
+                    "notificationVolume, mediaVolume, alarmVolume, voiceCallVolume, systemVolume, " +
+                    "isActive, colorArgb, iconKey) VALUES (3, '音楽', 1, 2, 4, 4, 25, 6, 11, 4, 1, 42, 'music')",
+            )
+        }
+
+        helper.runMigrationsAndValidate(DB, 3, true, *VolaceDatabase.MIGRATIONS).use { db ->
+            db.query("SELECT name, mediaVolume, isActive, colorArgb, iconKey, keepMask FROM profiles WHERE id = 3").use { c ->
+                assertTrue(c.moveToFirst())
+                assertEquals("音楽", c.getString(0))
+                assertEquals(25, c.getInt(1))
+                assertEquals(1, c.getInt(2))
+                assertEquals(42, c.getInt(3))
+                assertEquals("music", c.getString(4))
+                assertEquals(0, c.getInt(5)) // every stream applied, as before
+            }
+        }
+    }
+
     /** What the app itself does on launch: every registered migration must get it to the latest. */
     @Test
     fun appBuilder_opensOldestSchemaWithoutLosingData() {
@@ -85,13 +108,13 @@ class MigrationTest {
      */
     @Test
     fun noMigrationPath_failsInsteadOfWiping() {
-        helper.createDatabase(DB, 2).use { db ->
+        helper.createDatabase(DB, 3).use { db ->
             db.execSQL(
                 "INSERT INTO profiles (name, orderIndex, ringerMode, ringVolume, " +
                     "notificationVolume, mediaVolume, alarmVolume, voiceCallVolume, systemVolume, " +
-                    "isActive, colorArgb, iconKey) VALUES ('通常', 0, 2, 5, 5, 15, 6, 11, 5, 0, 0, 'bell')",
+                    "isActive, colorArgb, iconKey, keepMask) VALUES ('通常', 0, 2, 5, 5, 15, 6, 11, 5, 0, 0, 'bell', 0)",
             )
-            db.execSQL("PRAGMA user_version = 3") // as written by a future build
+            db.execSQL("PRAGMA user_version = 4") // as written by a future build
         }
 
         val db = VolaceDatabase.builder(context, DB).allowMainThreadQueries().build()
