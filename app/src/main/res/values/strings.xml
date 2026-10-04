@@ -299,4 +299,17 @@
     <string name="schedule_failed_access">「おやすみモード」へのアクセスが必要です。タップしてアプリを開きます</string>
     <string name="schedule_gone_title">スケジュールのプロファイルがありません</string>
     <string name="schedule_gone_text">%1$s のプロファイルは削除されています。タップしてスケジュールを直してください</string>
+    <!-- Sounds (音) -->
+    <string name="section_sounds">音</string>
+    <string name="sound_ringtone">着信音</string>
+    <string name="sound_notification">通知音</string>
+    <string name="sound_alarm">アラーム音</string>
+    <string name="sound_keep">変更しない</string>
+    <string name="sound_none">なし</string>
+    <string name="sound_unknown">見つからない音</string>
+    <string name="sound_reset">%1$sを「変更しない」に戻す</string>
+    <string name="sound_note">端末の標準の音を切り替えます。ほかのアプリが独自に設定した通知音や、時計アプリのアラームごとの音には効きません。</string>
+    <string name="sound_permission">音を切り替えるには「システム設定の変更」の許可が必要です。</string>
+    <string name="sound_permission_button">許可する</string>
+    <string name="sound_failed_permission">音（「システム設定の変更」の許可が必要）</string>
 </resources>

@@ -1,5 +1,18 @@
 package com.hong.volace.ui.edit
 
+import android.app.Activity
+import android.media.RingtoneManager
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material.icons.filled.Alarm
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.NotificationsActive
+import androidx.compose.material.icons.filled.RingVolume
+import androidx.lifecycle.compose.LifecycleResumeEffect
+import com.hong.volace.audio.SoundKind
+import com.hong.volace.audio.Sounds
+import com.hong.volace.audio.setsSounds
 import androidx.compose.runtime.produceState
 import com.hong.volace.data.VolaceDatabase
 import com.hong.volace.schedule.Schedules
@@ -452,6 +465,9 @@ fun ProfileEditScreen(
                 )
             }
 
+            SectionTitle(stringResource(R.string.section_sounds))
+            SoundsSection(current, onChange = { profile = it })
+
 
             // Looks come last: most visits are to change what the profile sounds like.
             SectionTitle(stringResource(R.string.section_color))
@@ -707,6 +723,7 @@ private val ProfileSaver = listSaver<Profile?, Any>(
             p.id, p.name, p.orderIndex, p.ringerMode, p.ringVolume, p.notificationVolume,
             p.mediaVolume, p.alarmVolume, p.voiceCallVolume, p.systemVolume, p.isActive,
             p.colorArgb, p.iconKey, p.keepMask,
+            p.ringtoneUri ?: NO_SOUND, p.notificationSoundUri ?: NO_SOUND, p.alarmSoundUri ?: NO_SOUND,
         )
     },
     restore = { v ->
@@ -725,9 +742,115 @@ private val ProfileSaver = listSaver<Profile?, Any>(
             colorArgb = v[11] as Int,
             iconKey = v[12] as String,
             keepMask = v[13] as Int,
+            ringtoneUri = (v[14] as String).takeIf { it != NO_SOUND },
+            notificationSoundUri = (v[15] as String).takeIf { it != NO_SOUND },
+            alarmSoundUri = (v[16] as String).takeIf { it != NO_SOUND },
         )
     },
 )
+
+/** A null sound ("変更しない") in [ProfileSaver], which cannot hold nulls; "" is taken by "なし". */
+private const val NO_SOUND = "\u0000"
+
+/**
+ * "音": the default ringtone, notification and alarm sounds the profile sets, each "変更しない"
+ * unless chosen. Writing them needs "システム設定の変更", asked for here once a sound is chosen.
+ */
+@Composable
+private fun SoundsSection(profile: Profile, onChange: (Profile) -> Unit) {
+    val context = LocalContext.current
+    var canWrite by remember { mutableStateOf(Sounds.canWrite(context)) }
+    // Back from Settings with the switch turned on (or off).
+    LifecycleResumeEffect(Unit) {
+        canWrite = Sounds.canWrite(context)
+        onPauseOrDispose {}
+    }
+    var picking by rememberSaveable { mutableStateOf<SoundKind?>(null) }
+    val picker = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        val kind = picking ?: return@rememberLauncherForActivityResult
+        picking = null
+        if (result.resultCode != Activity.RESULT_OK) return@rememberLauncherForActivityResult
+        // No URI back is the picker's "None".
+        val uri = result.data?.getParcelableExtra(RingtoneManager.EXTRA_RINGTONE_PICKED_URI, Uri::class.java)
+        onChange(kind.copyWith(profile, uri?.toString() ?: SoundKind.SILENT))
+    }
+
+    SoundKind.entries.forEach { kind ->
+        val value = kind.valueOf(profile)
+        val label = stringResource(kind.label)
+        val unknown = stringResource(R.string.sound_unknown)
+        val title by produceState<String?>(null, value) {
+            this.value = value?.takeIf { it != SoundKind.SILENT }?.let {
+                withContext(Dispatchers.IO) { Sounds.title(context, it) } ?: unknown
+            }
+        }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 56.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .clickable {
+                    picking = kind
+                    picker.launch(Sounds.pickerIntent(context, kind, value))
+                }
+                .padding(horizontal = 4.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                when (kind) {
+                    SoundKind.RINGTONE -> Icons.Filled.RingVolume
+                    SoundKind.NOTIFICATION -> Icons.Filled.NotificationsActive
+                    SoundKind.ALARM -> Icons.Filled.Alarm
+                },
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(22.dp),
+            )
+            Spacer(Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(label, style = MaterialTheme.typography.bodyLarge)
+                Text(
+                    when (value) {
+                        null -> stringResource(R.string.sound_keep)
+                        SoundKind.SILENT -> stringResource(R.string.sound_none)
+                        else -> title ?: ""
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (value == null) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary,
+                )
+            }
+            if (value != null) {
+                IconButton(onClick = { onChange(kind.copyWith(profile, null)) }) {
+                    Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.sound_reset, label))
+                }
+            }
+        }
+    }
+    if (profile.setsSounds && !canWrite) {
+        Surface(
+            shape = RoundedCornerShape(12.dp),
+            color = MaterialTheme.colorScheme.errorContainer,
+            modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
+        ) {
+            Column(Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
+                Text(
+                    stringResource(R.string.sound_permission),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onErrorContainer,
+                )
+                TextButton(onClick = { context.startActivity(Sounds.writeSettingsIntent(context)) }) {
+                    Text(stringResource(R.string.sound_permission_button))
+                }
+            }
+        }
+    }
+    Text(
+        stringResource(R.string.sound_note),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(top = 6.dp),
+    )
+}
 
 @StringRes
 private fun ringerModeHint(mode: Int): Int = when (mode) {

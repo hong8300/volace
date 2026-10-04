@@ -49,10 +49,13 @@ Profile
   keepMask: Int             // 「変更しない」ストリーム(ビット列。v3〜)
   colorArgb: Int            // アクセントカラー(一覧・ウィジェット共通)
   iconKey: String           // ProfileIcon のキー。未知の値は既定アイコンにフォールバック
+  ringtoneUri: String?      // 標準の着信音・通知音・アラーム音(v5〜)。null = 変更しない、"" = なし(5.16)
+  notificationSoundUri: String?
+  alarmSoundUri: String?
 ```
 
-Room の schema version は **3**。v1 → v2 で `colorArgb` / `iconKey`、v2 → v3 で `keepMask` を `ALTER TABLE ADD COLUMN` する
-マイグレーションを持つ(どちらも実機で既存データを保持したまま移行できることを確認済み)。
+Room の schema version は **5**。v1 → v2 で `colorArgb` / `iconKey`、v2 → v3 で `keepMask`、v4 → v5 で音の 3 列を `ALTER TABLE ADD COLUMN` し、
+v3 → v4 でスケジュールの表(5.15)を作るマイグレーションを持つ(v1〜v3 は実機で既存データを保持したまま移行できることを確認済み)。
 
 `keepMask`(issue #21)はストリームごとの「変更しない」。1ストリーム1ビット(`VolumeStream.keepBit`、DB に保存されるので番号を変えない)。
 立っているストリームは適用時に書き込まず、「変更あり」の判定からも外す。音量の値は残すので、スイッチを戻せば元の値で適用される。
@@ -409,6 +412,21 @@ AudioService は音量を `Settings.System`(`volume_music_speaker` 等、出力�
 - **バックアップ**: JSON のバックアップ(5.11)にはまだ含めない。OS のバックアップには DB ごと含まれる
 - **通知の許可**: 最初にルールを保存したときに `POST_NOTIFICATIONS` を求める(失敗の通知に要る)
 
+### 5.16 プロファイルごとの音(issue #28)
+
+プロファイルに端末の標準の着信音・通知音・アラーム音を持たせ、適用時に切り替える(`audio/ProfileSounds.kt`)。
+
+- **値**: 種類ごとに null(変更しない、既定)/ ""(なし)/ 音の URI。編集画面の「音」で、行をタップすると
+  システムの音の選択画面(`RingtoneManager.ACTION_RINGTONE_PICKER`。Pixel では Google の SoundPicker)が開く。
+  「既定」は出さない(プロファイルが書き換える設定そのものを指すため)。× で「変更しない」に戻す
+- **適用**: `VolumeApplier.apply` の最後に `RingtoneManager.setActualDefaultRingtoneUri`。音の変更は「変更あり」の判定(`matches`)に含めない
+- **許可**: 「システム設定の変更」(`WRITE_SETTINGS`、特別なアクセス)が要る。マニフェストに宣言しないと設定画面のスイッチが押せない。
+  音を選んでいて許可が無いと、編集画面に案内(「許可する」で設定画面を開き、戻ったら読み直す)。
+  許可が無いまま適用すると、音以外は書いて「一部(音)を変更できませんでした」(`Partial`)にする。黙って成功扱いしない
+- **効く範囲**: 標準の音だけ。ほかのアプリが独自に設定した通知音(通知チャンネルの音)や、時計アプリのアラームごとの音は変わらない(画面で説明)
+- **時間指定(5.14)**: 時間指定のプロファイルが変える種類だけ、開始前の音を `ProfileTimer.previousSounds` に持ち、「適用前の状態に戻す」で書き戻す
+- **バックアップ(5.11)**: 音の URI は端末ごとに違う(`content://media/internal/audio/media/<番号>`)ので JSON には含めない。読み込んだプロファイルは「変更しない」になる
+
 ## 6. パーミッション
 
 ```xml
@@ -419,6 +437,8 @@ AudioService は音量を `Settings.System`(`volume_music_speaker` 等、出力�
 - ただし `ACCESS_NOTIFICATION_POLICY` は宣言だけでは不十分で、ユーザーが設定画面から個別に許可する必要がある(4.3のオンボーディングで対応)
 - Accessibility Service・Device Admin は不要
 - 外部での音量変更への追従(5.6)は JobScheduler の content-trigger で、追加の権限は要らない
+- プロファイルごとの音(5.16)のために `WRITE_SETTINGS`(「システム設定の変更」)。特別なアクセスで、ユーザーが設定画面で許可する
+  (`ProtectedPermissions` の lint は抑止。音を選んだプロファイルの編集画面から案内する)
 - 時間指定(5.14)のために次を追加:
 
 ```xml
@@ -680,6 +700,16 @@ Android 17 のソース(`android17-release` の `services/core/java/com/android/
 | `set-hardening enable` で失敗させ、通知をタップ | 強制状態でも透明な Activity から「マナー」に切り替わり、記録は「手動で切り替えた」、通知は消えた |
 | 時間指定(「サイレント」15:17 まで・終わったら適用前の状態=「マナー」)の途中、15:15 に「サイレント」の境界 | 時間指定は続き、戻り先が「サイレント」に付け替わった(記録は「時間指定が終わったら」)。15:17 に「サイレント」になった |
 | アプリを開いている間の境界 | 切り替わった |
+
+### 8.8 プロファイルごとの音の確認(Pixel 9a / Android 17、2026-10-04、issue #28)
+
+| 手順 | 結果 |
+|---|---|
+| 編集画面で着信音・通知音を選ぶ | Google の SoundPicker が開き、選んだ音の名前(コピーキャット・デュエット)が出た。許可が無いので案内が出た |
+| 許可が無いまま適用 | 「一部(音(「システム設定の変更」の許可が必要))を変更できませんでした」。音は変わらなかった |
+| 「許可する」→ スイッチをオン → 戻る | 案内が消えた(最初はマニフェストに `WRITE_SETTINGS` が無く、スイッチが灰色で押せなかった) |
+| 適用 | 着信音 Copycat・通知音 Duet に変わり、アラーム音(変更しない)はそのまま |
+| 1 分の時間指定 → 終了 | 開始前の音(Your New Adventure・Eureka)に戻った |
 
 ### 未検証(今後)
 - Pixel 11 Pro でのプロファイル適用とウィジェット配置(端末ロックのため未実施。

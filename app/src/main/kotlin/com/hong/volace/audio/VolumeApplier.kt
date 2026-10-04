@@ -105,7 +105,27 @@ class VolumeApplier(context: Context) {
                 }
             }
         }
+        applySounds(profile, failed)
         return if (failed.isEmpty()) ApplyResult.Applied else ApplyResult.Partial(failed)
+    }
+
+    /**
+     * The default sounds the profile sets. Without "システム設定の変更" none can be written: one
+     * entry says so rather than three bare names. Not part of [matches]: the volumes are.
+     */
+    private fun applySounds(profile: Profile, failed: MutableList<String>) {
+        val chosen = SoundKind.entries.mapNotNull { kind -> kind.valueOf(profile)?.let { kind to it } }
+        if (chosen.isEmpty()) return
+        if (!Sounds.canWrite(context)) {
+            failed += context.getString(R.string.sound_failed_permission)
+            return
+        }
+        chosen.forEach { (kind, value) ->
+            runCatching { Sounds.set(context, kind, value) }.onFailure {
+                Log.w(TAG, "could not set the ${kind.key} sound for ${profile.name}", it)
+                failed += context.getString(kind.label)
+            }
+        }
     }
 
     fun hasAccess(): Boolean = notificationManager.isNotificationPolicyAccessGranted
