@@ -67,6 +67,10 @@ Room の schema version は **2**。v1 → v2 で `colorArgb` / `iconKey` を `A
 - ミニバーは **各ストリーム自身の最大値で正規化**する。プロファイル内の最大値で正規化すると
   着信音 7/7 がメディア 12/25 より短く見えてしまうため(初期実装のバグ)。バーの下に `R N M A V S` のラベルを表示
 - 右下 FAB(「追加」)で新規プロファイル
+- 一番上に **「現在の音量」カード**(5.5)。端末の実際の着信モードと6ストリームの値をバーと数値で表示し、
+  音量キー等で変わるとその場で更新される(`VOLUME_CHANGED_ACTION` 等の動的レシーバ、150ms まとめて読む)
+- 適用中のプロファイルと端末の音量がずれたら(5.7)、その行は塗りを外して枠線だけにし、
+  バッジを「適用中」→ **「変更あり」** に変える。カードにも「『○○』の適用後に変更されています」と出す
 - 並べ替えは上部バーの「⇅」でモードを切り替え、各行に ↑↓ ボタンが出る方式。
   常時表示しないのは、行全体をタップ領域として最大化し誤タップを避けるため
 
@@ -156,6 +160,55 @@ Profile に **accent color (`colorArgb`)** と **アイコン (`iconKey`)** を�
 `AppWidgetManager.requestPinAppWidget()` でシステムの「ホーム画面に追加」ダイアログを直接出せるようにした。
 1×1 / 4×1 / 4×2 をその場で選べる。
 
+### 5.5 現在の音量の表示(issue #1)
+
+「音量キーや他のアプリで音量を変えても、ウィジェット上は適用中のままで変わったことが分からない」
+「ウィジェットから音量の詳細を見たい・アプリを開きたい」への対応。
+
+| ウィジェット | 表示 | タップ |
+|---|---|---|
+| 1×1 | なし(場所がない) | 従来どおり循環 |
+| 4×1 | 5つ目のタイルに **6本の縦ミニバー**(R N M A V S、アプリ一覧と同じ)+ 着信モードのアイコン | アプリを開く |
+| 4×2 | 上段に **横バー + 数値** を 2列×3行(編集画面の並び)+ 着信モードと「変更あり」の文言 | アプリを開く |
+
+- 「アプリを開く」は `MainActivity` を `NEW_TASK | CLEAR_TOP` で起動するので、アプリが編集画面のまま
+  裏にいても、必ずアプリアイコンと同じプロファイル一覧から始まる
+- バーは `ClipDrawable` を `src` にした `ImageView` に `setImageLevel(0..10000)` で長さを、
+  `setColorFilter` で色(適用中プロファイルの色)を指定している。`ProgressBar` の色付けより素直
+- 4×2 は `RemoteViews(Map<SizeF, RemoteViews>)` で高さ 180dp 未満なら音量表示を外した版を出す
+  (縮めたときにプロファイルボタンが潰れないように。Pixel 9a の 4×2 は約 200dp)
+- `RemoteViews` で使えないビューがあるので(`Space` 等)、レイアウトは
+  `FrameLayout` / `LinearLayout` / `ImageView` / `TextView` だけで組んでいる
+
+### 5.6 アプリ外での音量変更への追従
+
+ウィジェットのプロセスは普段死んでいるので、動的レシーバでは音量キーを拾えない。
+`VOLUME_CHANGED_ACTION` はマニフェスト登録の暗黙ブロードキャスト例外にも入っていない。
+フォアグラウンドサービスは常駐通知が出るので避けたい。
+
+そこで **content-trigger の JobScheduler ジョブ**(`VolumeWatchJob`)を使う。
+AudioService は音量を `Settings.System`(`volume_music_speaker` 等、出力デバイスごと)に、
+着信モードを `Settings.Global.mode_ringer` に書き込むので、その URI の変化でジョブを起こせる。
+
+- トリガー: `Settings.System.CONTENT_URI`(子孫も)+ `Settings.Global.MODE_RINGER`。
+  update delay 100ms / max delay 1s(音量キー長押しは1回の再描画にまとまる)
+- content-trigger ジョブは1回発火で終わる。`WidgetRefresher.refreshAll()` の最後に毎回スケジュールし直す。
+  実行中に同じIDでスケジュールし直すと、その間に来た変更は次のジョブに引き継がれる
+- 永続化(`setPersisted`)できないので、再起動後はランチャーが送る `APPWIDGET_UPDATE` → `onUpdate()` で張り直す
+- ウィジェットが1つも無くなったら(`onDisabled` → `refreshAll`)キャンセル
+- 実機ではプロセスを `am kill` した状態から、音量変更 → 約1秒でプロセス起動・再描画を確認(8.6)。
+  無関係な System 設定の変化で頻繁に起きることもなかった
+
+### 5.7 「変更あり」の判定
+
+`VolumeApplier.matches(profile, device)`。適用直後に「変更あり」にならないよう、Android が勝手に書き換える値は比較しない。
+
+- 着信モードは一致が必要(サイレント適用後も `getRingerMode()` はサイレントを返す。8.3 の内部モードとは別)
+- `SYSTEM` は `RING` のエイリアス(8章)なので比較しない
+- バイブ/サイレントでは `RING` / `NOTIFICATION` はミュートされ 0 を返すので比較しない
+- 期待値は `getStreamMinVolume()`〜`getStreamMaxVolume()` に丸める(通話・アラームは最小 1)
+- ヘッドホン等で出力先が変わるとメディアの値も変わるので「変更あり」になる。実際に音量が違うので正しい挙動とする
+
 ## 6. パーミッション
 
 ```xml
@@ -165,6 +218,7 @@ Profile に **accent color (`colorArgb`)** と **アイコン (`iconKey`)** を�
 - どちらも通常権限(ランタイムダイアログなし)
 - ただし `ACCESS_NOTIFICATION_POLICY` は宣言だけでは不十分で、ユーザーが設定画面から個別に許可する必要がある(4.3のオンボーディングで対応)
 - フォアグラウンドサービス・Accessibility Service・Device Admin は不要(すべてタップ起点の即時処理のため)
+- 外部での音量変更への追従(5.6)は JobScheduler の content-trigger で、追加の権限は要らない
 
 ## 7. プロジェクト構成
 
@@ -179,22 +233,25 @@ volace/
         VolaceDatabase.kt       // version 2, MIGRATION_1_2
         DefaultProfiles.kt      // 初回起動時に生成する4プロファイル
       audio/
-        VolumeApplier.kt        // AudioManager 操作の一元化クラス
+        VolumeApplier.kt        // AudioManager 操作の一元化クラス(snapshot / matches も)
+        DeviceVolumes.kt        // 端末の現在の音量・着信モード
         StreamInfo.kt           // 6ストリームの定義・アイコン・ラベルマッピング
       ui/
         list/ProfileListScreen.kt
+        list/CurrentVolumeCard.kt  // 「現在の音量」カードと音量変化の購読
         edit/ProfileEditScreen.kt
         onboarding/OnboardingScreen.kt
         theme/Theme.kt
       widget/
-        WidgetStyle.kt          // 3バリエーションの定義とセルのview id表
-        WidgetRenderer.kt       // profiles → RemoteViews
+        WidgetStyle.kt          // 3バリエーションの定義とセル・音量バーのview id表
+        WidgetRenderer.kt       // profiles + 端末の音量 → RemoteViews
         WidgetPlumbing.kt       // provider×3 / VolumeApplyReceiver / WidgetRefresher
+        VolumeWatchJob.kt       // アプリ外での音量変更でウィジェットを再描画
       MainActivity.kt
     src/main/res/
       drawable/ic_profile_*.xml        // プロファイル用アイコン14種(アプリ・ウィジェット共通)
       drawable/ic_launcher_*.xml       // アプリアイコン(前景/背景/モノクロ)
-      drawable/widget_*.xml            // ウィジェットの角丸shape
+      drawable/widget_*.xml            // ウィジェットの角丸shape・音量バー(ClipDrawable)
       layout/widget_{1x1,1x4,2x4}.xml
       mipmap-anydpi-v26/ic_launcher*.xml
       xml/widget_info_{1x1,1x4,2x4}.xml
@@ -293,6 +350,23 @@ volace/
 - リリースAPKのインストール、`cmd notification allow_dnd` による DND アクセス付与、
   初回起動時の既定プロファイル4件の生成まで確認。クラッシュなし
 - ライトテーマ端末での表示も確認(9 Pro XL はダークテーマ)
+
+### 8.6 現在の音量表示の実機検証(Pixel 9a / Android 17, SDK 37, 2026-10-04)
+
+| 確認項目 | 結果 |
+|---|---|
+| 4プロファイルそれぞれ適用直後に「適用中」(誤って「変更あり」にならない) | OK |
+| アプリ表示中に外部から音量変更 → カードと「変更あり」がその場で更新 | OK |
+| 4×2 / 4×1 の音量表示(バー・数値・着信モード) | OK |
+| **プロセスを kill した状態で外部から音量変更 → ウィジェット更新** | OK(約1秒) |
+| 外部から着信モードをバイブに → ウィジェットのアイコン・バー更新 | OK |
+| 「変更あり」のセルをタップ → 再適用され塗りに戻る | OK |
+| 音量表示のタップ → プロファイル一覧が開く(編集画面のまま裏にいても) | OK |
+
+- adb の `input keyevent KEYCODE_VOLUME_*` と `cmd media_session volume --set` は、この端末では
+  **AudioHardening により無視される**(`dumpsys audio` に "volume control ... would be ignored")。
+  外部からの音量変更の再現には `adb shell cmd audio set-volume <stream> <index>` /
+  `cmd audio set-ringer-mode VIBRATE` を使う
 
 ### 未検証(今後)
 - Pixel 11 Pro でのプロファイル適用とウィジェット配置(端末ロックのため未実施。

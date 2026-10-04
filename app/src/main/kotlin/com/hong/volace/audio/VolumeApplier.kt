@@ -10,7 +10,34 @@ class VolumeApplier(context: Context) {
 
     fun maxVolume(stream: VolumeStream): Int = audioManager.getStreamMaxVolume(stream.streamType)
 
+    fun minVolume(stream: VolumeStream): Int = audioManager.getStreamMinVolume(stream.streamType)
+
     fun currentVolume(stream: VolumeStream): Int = audioManager.getStreamVolume(stream.streamType)
+
+    fun snapshot(): DeviceVolumes = DeviceVolumes(
+        ringerMode = audioManager.ringerMode,
+        levels = VolumeStream.entries.associateWith { currentVolume(it) },
+    )
+
+    /**
+     * Whether the device still sits where [profile] left it. Streams Android rewrites on its own
+     * are skipped, otherwise a freshly applied profile would immediately look changed:
+     * - SYSTEM is aliased to RING (see [apply]), so it always reports the ringer's level.
+     * - In vibrate/silent, RING and NOTIFICATION are muted and report 0.
+     * Expected values are clamped to the stream's range (call and alarm cannot go below 1).
+     */
+    fun matches(profile: Profile, device: DeviceVolumes): Boolean {
+        if (device.ringerMode != profile.ringerMode) return false
+        val ringerMuted = profile.ringerMode != AudioManager.RINGER_MODE_NORMAL
+        return VolumeStream.entries.all { stream ->
+            when {
+                stream == VolumeStream.SYSTEM -> true
+                ringerMuted && stream in RINGER_STREAMS -> true
+                else -> device.levelOf(stream) ==
+                    stream.valueOf(profile).coerceIn(minVolume(stream), maxVolume(stream))
+            }
+        }
+    }
 
     fun apply(profile: Profile) {
         // Set the mode first so the ring/notification streams are unmuted and actually accept the
@@ -48,5 +75,7 @@ class VolumeApplier(context: Context) {
             VolumeStream.VOICE_CALL,
             VolumeStream.RINGER,
         )
+
+        val RINGER_STREAMS = setOf(VolumeStream.RINGER, VolumeStream.NOTIFICATION)
     }
 }

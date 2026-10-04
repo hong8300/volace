@@ -7,6 +7,378 @@
     android:background="@drawable/widget_root_bg"
     android:padding="2dp">
 
+    <!-- Live read-out of the device's volumes (stat_0..5 in VolumeStream order); tapping it
+         opens the app. Hidden by WidgetRenderer when the widget is too short to fit it. -->
+    <LinearLayout
+        android:id="@+id/status_panel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="3dp"
+        android:orientation="vertical"
+        android:background="@drawable/widget_status_bg"
+        android:paddingLeft="12dp"
+        android:paddingRight="8dp"
+        android:paddingTop="6dp"
+        android:paddingBottom="7dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <ImageView
+                android:id="@+id/status_mode_icon"
+                android:layout_width="14dp"
+                android:layout_height="14dp"
+                android:src="@drawable/ic_profile_volume_up"
+                android:tint="#FFDCDCE6"
+                android:contentDescription="@null" />
+
+            <TextView
+                android:id="@+id/status_mode_text"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:paddingLeft="5dp"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:fontFamily="sans-serif-medium"
+                android:textColor="#FFDCDCE6"
+                android:textSize="11sp"
+                android:text="着信音あり" />
+
+            <ImageView
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:src="@drawable/ic_widget_tune"
+                android:tint="#FFDCDCE6"
+                android:contentDescription="@null" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingTop="3dp"
+            android:orientation="horizontal">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:id="@+id/stat_0_label"
+                    android:layout_width="44dp"
+                    android:layout_height="wrap_content"
+                    android:maxLines="1"
+                    android:textColor="#B3DCDCE6"
+                    android:textSize="10sp"
+                    android:text="着信音" />
+
+                <FrameLayout
+                    android:layout_width="0dp"
+                    android:layout_height="5dp"
+                    android:layout_weight="1">
+
+                    <ImageView
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:scaleType="fitXY"
+                        android:src="@drawable/widget_bar_track"
+                        android:contentDescription="@null" />
+
+                    <ImageView
+                        android:id="@+id/stat_0_fill"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:scaleType="fitXY"
+                        android:src="@drawable/widget_bar_fill_h"
+                        android:tint="#FF8FB8FF"
+                        android:contentDescription="@null" />
+                </FrameLayout>
+
+                <TextView
+                    android:id="@+id/stat_0_value"
+                    android:layout_width="22dp"
+                    android:layout_height="wrap_content"
+                    android:gravity="end"
+                    android:maxLines="1"
+                    android:fontFamily="sans-serif-medium"
+                    android:textColor="#FFDCDCE6"
+                    android:textSize="10sp"
+                    android:text="5" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginLeft="12dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:id="@+id/stat_1_label"
+                    android:layout_width="44dp"
+                    android:layout_height="wrap_content"
+                    android:maxLines="1"
+                    android:textColor="#B3DCDCE6"
+                    android:textSize="10sp"
+                    android:text="通知" />
+
+                <FrameLayout
+                    android:layout_width="0dp"
+                    android:layout_height="5dp"
+                    android:layout_weight="1">
+
+                    <ImageView
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:scaleType="fitXY"
+                        android:src="@drawable/widget_bar_track"
+                        android:contentDescription="@null" />
+
+                    <ImageView
+                        android:id="@+id/stat_1_fill"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:scaleType="fitXY"
+                        android:src="@drawable/widget_bar_fill_h"
+                        android:tint="#FF8FB8FF"
+                        android:contentDescription="@null" />
+                </FrameLayout>
+
+                <TextView
+                    android:id="@+id/stat_1_value"
+                    android:layout_width="22dp"
+                    android:layout_height="wrap_content"
+                    android:gravity="end"
+                    android:maxLines="1"
+                    android:fontFamily="sans-serif-medium"
+                    android:textColor="#FFDCDCE6"
+                    android:textSize="10sp"
+                    android:text="5" />
+            </LinearLayout>
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingTop="3dp"
+            android:orientation="horizontal">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:id="@+id/stat_2_label"
+                    android:layout_width="44dp"
+                    android:layout_height="wrap_content"
+                    android:maxLines="1"
+                    android:textColor="#B3DCDCE6"
+                    android:textSize="10sp"
+                    android:text="メディア" />
+
+                <FrameLayout
+                    android:layout_width="0dp"
+                    android:layout_height="5dp"
+                    android:layout_weight="1">
+
+                    <ImageView
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:scaleType="fitXY"
+                        android:src="@drawable/widget_bar_track"
+                        android:contentDescription="@null" />
+
+                    <ImageView
+                        android:id="@+id/stat_2_fill"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:scaleType="fitXY"
+                        android:src="@drawable/widget_bar_fill_h"
+                        android:tint="#FF8FB8FF"
+                        android:contentDescription="@null" />
+                </FrameLayout>
+
+                <TextView
+                    android:id="@+id/stat_2_value"
+                    android:layout_width="22dp"
+                    android:layout_height="wrap_content"
+                    android:gravity="end"
+                    android:maxLines="1"
+                    android:fontFamily="sans-serif-medium"
+                    android:textColor="#FFDCDCE6"
+                    android:textSize="10sp"
+                    android:text="12" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginLeft="12dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:id="@+id/stat_3_label"
+                    android:layout_width="44dp"
+                    android:layout_height="wrap_content"
+                    android:maxLines="1"
+                    android:textColor="#B3DCDCE6"
+                    android:textSize="10sp"
+                    android:text="アラーム" />
+
+                <FrameLayout
+                    android:layout_width="0dp"
+                    android:layout_height="5dp"
+                    android:layout_weight="1">
+
+                    <ImageView
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:scaleType="fitXY"
+                        android:src="@drawable/widget_bar_track"
+                        android:contentDescription="@null" />
+
+                    <ImageView
+                        android:id="@+id/stat_3_fill"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:scaleType="fitXY"
+                        android:src="@drawable/widget_bar_fill_h"
+                        android:tint="#FF8FB8FF"
+                        android:contentDescription="@null" />
+                </FrameLayout>
+
+                <TextView
+                    android:id="@+id/stat_3_value"
+                    android:layout_width="22dp"
+                    android:layout_height="wrap_content"
+                    android:gravity="end"
+                    android:maxLines="1"
+                    android:fontFamily="sans-serif-medium"
+                    android:textColor="#FFDCDCE6"
+                    android:textSize="10sp"
+                    android:text="6" />
+            </LinearLayout>
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingTop="3dp"
+            android:orientation="horizontal">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:id="@+id/stat_4_label"
+                    android:layout_width="44dp"
+                    android:layout_height="wrap_content"
+                    android:maxLines="1"
+                    android:textColor="#B3DCDCE6"
+                    android:textSize="10sp"
+                    android:text="通話" />
+
+                <FrameLayout
+                    android:layout_width="0dp"
+                    android:layout_height="5dp"
+                    android:layout_weight="1">
+
+                    <ImageView
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:scaleType="fitXY"
+                        android:src="@drawable/widget_bar_track"
+                        android:contentDescription="@null" />
+
+                    <ImageView
+                        android:id="@+id/stat_4_fill"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:scaleType="fitXY"
+                        android:src="@drawable/widget_bar_fill_h"
+                        android:tint="#FF8FB8FF"
+                        android:contentDescription="@null" />
+                </FrameLayout>
+
+                <TextView
+                    android:id="@+id/stat_4_value"
+                    android:layout_width="22dp"
+                    android:layout_height="wrap_content"
+                    android:gravity="end"
+                    android:maxLines="1"
+                    android:fontFamily="sans-serif-medium"
+                    android:textColor="#FFDCDCE6"
+                    android:textSize="10sp"
+                    android:text="9" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginLeft="12dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:id="@+id/stat_5_label"
+                    android:layout_width="44dp"
+                    android:layout_height="wrap_content"
+                    android:maxLines="1"
+                    android:textColor="#B3DCDCE6"
+                    android:textSize="10sp"
+                    android:text="システム" />
+
+                <FrameLayout
+                    android:layout_width="0dp"
+                    android:layout_height="5dp"
+                    android:layout_weight="1">
+
+                    <ImageView
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:scaleType="fitXY"
+                        android:src="@drawable/widget_bar_track"
+                        android:contentDescription="@null" />
+
+                    <ImageView
+                        android:id="@+id/stat_5_fill"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:scaleType="fitXY"
+                        android:src="@drawable/widget_bar_fill_h"
+                        android:tint="#FF8FB8FF"
+                        android:contentDescription="@null" />
+                </FrameLayout>
+
+                <TextView
+                    android:id="@+id/stat_5_value"
+                    android:layout_width="22dp"
+                    android:layout_height="wrap_content"
+                    android:gravity="end"
+                    android:maxLines="1"
+                    android:fontFamily="sans-serif-medium"
+                    android:textColor="#FFDCDCE6"
+                    android:textSize="10sp"
+                    android:text="5" />
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+
     <LinearLayout
         android:id="@+id/row_0"
         android:layout_width="match_parent"

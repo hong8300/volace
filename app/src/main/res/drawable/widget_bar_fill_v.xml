@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Vertical level bar: ImageView.setImageLevel(0..10000) reveals it from the bottom. -->
+<clip xmlns:android="http://schemas.android.com/apk/res/android"
+    android:clipOrientation="vertical"
+    android:gravity="bottom"
+    android:drawable="@drawable/widget_bar_shape" />
