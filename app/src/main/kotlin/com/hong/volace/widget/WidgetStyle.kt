@@ -72,7 +72,7 @@ enum class WidgetStyle(
     SINGLE(
         R.layout.widget_1x1, 1, Volace1x1Provider::class.java,
         cycles = true, secondRow = null, status = StatusPanel.NONE,
-        title = "1 × 1", subtitle = "タップするたびに次のプロファイルへ切り替え",
+        title = "1 × 1", subtitle = "タップで次のプロファイルへ。横に広げると一覧から選べる",
     ),
     ROW4(
         R.layout.widget_1x4, 4, Volace1x4Provider::class.java,

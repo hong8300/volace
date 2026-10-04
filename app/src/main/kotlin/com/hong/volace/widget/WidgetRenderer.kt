@@ -19,6 +19,7 @@ import com.hong.volace.data.Profile
 import com.hong.volace.data.ProfileIcon
 import com.hong.volace.data.VolaceDatabase
 import com.hong.volace.data.icon
+import com.hong.volace.tile.ProfilePickerActivity
 
 /** Everything a widget shows. Read once per refresh and shared by every placed widget. */
 internal class WidgetState(
@@ -72,10 +73,23 @@ object WidgetRenderer {
     /** Below this height a 4×2 cannot fit the status strip above two rows of profiles. */
     private const val FULL_STATUS_MIN_HEIGHT_DP = 180f
 
+    /** About two home-screen cells: from here the 1×1 has room for the "選ぶ" tile. */
+    private const val WIDE_SINGLE_MIN_WIDTH_DP = 150f
+
     /** Applied, and the device still matches it; applied but changed since; not applied. */
     private enum class CellLook { ACTIVE, DRIFTED, IDLE }
 
     internal fun build(context: Context, style: WidgetStyle, state: WidgetState): RemoteViews {
+        if (style.cycles) {
+            // Widened to two cells or more, the 1×1 also gets a "選ぶ" tile (WIDE_SINGLE_MIN_WIDTH_DP).
+            return RemoteViews(
+                mapOf(
+                    SizeF(40f, 40f) to buildOne(context, style, state, showStatus = true),
+                    SizeF(WIDE_SINGLE_MIN_WIDTH_DP, 40f) to
+                        buildOne(context, style, state, showStatus = true, layout = R.layout.widget_1x1_wide),
+                ),
+            )
+        }
         if (style.status != StatusPanel.FULL) return buildOne(context, style, state, showStatus = true)
         // Let the launcher pick per placed widget, so shrinking a 4×2 drops the strip rather than
         // squashing the profile buttons.
@@ -92,8 +106,16 @@ object WidgetRenderer {
         style: WidgetStyle,
         state: WidgetState,
         showStatus: Boolean,
+        layout: Int = style.layout,
     ): RemoteViews {
-        val views = RemoteViews(context.packageName, style.layout)
+        val views = RemoteViews(context.packageName, layout)
+        if (layout == R.layout.widget_1x1_wide) {
+            views.setOnClickPendingIntent(
+                R.id.pick_button,
+                if (state.hasAccess) pickerPendingIntent(context) else openAppPendingIntent(context),
+            )
+            views.setContentDescription(R.id.pick_button, "一覧からプロファイルを選ぶ")
+        }
         if (style.status != StatusPanel.NONE) {
             views.setViewVisibility(R.id.status_panel, if (showStatus) View.VISIBLE else View.GONE)
             if (showStatus) renderStatus(context, views, style.status, state)
@@ -115,10 +137,28 @@ object WidgetRenderer {
         if (!state.hasAccess) {
             // The only place a 1×1 can say why taps stopped working.
             views.setTextViewText(cell.name, "許可が必要")
+            views.setTextViewText(R.id.cycle_caption, "タップして開く")
             views.setOnClickPendingIntent(cell.root, openAppPendingIntent(context))
             views.setContentDescription(cell.root, NEEDS_ACCESS)
             return
         }
+        // Spelled out under the name: what the cell shows, and what a tap does.
+        views.setTextViewText(
+            R.id.cycle_caption,
+            when {
+                state.active == null -> "未適用・タップで適用"
+                look == CellLook.DRIFTED -> "変更あり"
+                else -> "タップで次へ"
+            },
+        )
+        views.setTextColor(
+            R.id.cycle_caption,
+            when (look) {
+                CellLook.ACTIVE -> 0xCCFFFFFF.toInt() // on the full-colour fill
+                CellLook.DRIFTED -> lighten(current.colorArgb, 0.45f)
+                CellLook.IDLE -> IDLE_TEXT
+            },
+        )
         views.setOnClickPendingIntent(cell.root, cyclePendingIntent(context))
         val status = if (look == CellLook.DRIFTED) "（適用後に音量が変更されています）" else ""
         views.setContentDescription(cell.root, "現在: ${current.name}$status。タップで次のプロファイル")
@@ -323,6 +363,15 @@ object WidgetRenderer {
         )
     }
 
+    /** The chooser the Quick Settings tile uses (applies from a visible activity). */
+    private fun pickerPendingIntent(context: Context): PendingIntent =
+        PendingIntent.getActivity(
+            context,
+            REQUEST_PICK,
+            Intent(context, ProfilePickerActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+
     /** Opens the app exactly like its launcher icon does. */
     private fun openAppPendingIntent(context: Context): PendingIntent {
         val intent = MainActivity.launcherIntent(context)
@@ -342,4 +391,5 @@ object WidgetRenderer {
 
     private const val REQUEST_CYCLE = 900_001
     private const val REQUEST_OPEN_APP = 900_002
+    private const val REQUEST_PICK = 900_003
 }
