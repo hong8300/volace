@@ -1,6 +1,7 @@
 package com.hong.volace.ui.edit
 
 import android.media.AudioManager
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -23,7 +24,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Remove
@@ -33,12 +34,15 @@ import androidx.compose.material.icons.filled.Vibration
 import androidx.compose.material.icons.filled.VolumeOff
 import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.BottomAppBar
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
@@ -86,10 +90,20 @@ fun ProfileEditScreen(
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     var profile by remember { mutableStateOf<Profile?>(null) }
+    /** As loaded (or as first generated, for a new profile), to tell whether anything changed. */
+    var original by remember { mutableStateOf<Profile?>(null) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
+    var showDiscardConfirm by remember { mutableStateOf(false) }
+
+    // Back (gesture, key or the arrow) returns to the list. Without this the system back
+    // finished the activity, closing the app and silently dropping the edits.
+    fun leave() {
+        if (profile != original) showDiscardConfirm = true else onDone()
+    }
+    BackHandler { leave() }
 
     LaunchedEffect(profileId) {
-        profile = profileId?.let { dao.getById(it) } ?: run {
+        val loaded = profileId?.let { dao.getById(it) } ?: run {
             val index = dao.count()
             Profile(
                 name = "新しいプロファイル",
@@ -105,6 +119,8 @@ fun ProfileEditScreen(
                 iconKey = ProfileIcon.DEFAULT.key,
             )
         }
+        original = loaded
+        profile = loaded
     }
 
     val current = profile
@@ -118,8 +134,8 @@ fun ProfileEditScreen(
         topBar = {
             TopAppBar(
                 navigationIcon = {
-                    IconButton(onClick = onDone) {
-                        Icon(Icons.Filled.ArrowBack, contentDescription = "戻る（保存しない）")
+                    IconButton(onClick = { leave() }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "一覧に戻る")
                     }
                 },
                 title = {
@@ -138,24 +154,56 @@ fun ProfileEditScreen(
                             )
                         }
                     }
-                    IconButton(onClick = {
-                        scope.launch {
-                            val toSave = current.copy(name = current.name.ifBlank { "無題" })
-                            if (profileId == null) dao.insert(toSave) else dao.update(toSave)
-                            WidgetRefresher.request(context)
-                            onDone()
-                        }
-                    }) {
-                        Icon(
-                            Icons.Filled.Check,
-                            contentDescription = "保存",
-                            tint = MaterialTheme.colorScheme.primary,
-                        )
-                    }
                 },
             )
         },
+        // Spelled-out buttons rather than a bare check mark in the top bar, which read as
+        // decoration rather than "save".
+        bottomBar = {
+            BottomAppBar {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    OutlinedButton(onClick = { leave() }, modifier = Modifier.weight(1f).height(48.dp)) {
+                        Text("キャンセル")
+                    }
+                    Button(
+                        onClick = {
+                            scope.launch {
+                                val toSave = current.copy(name = current.name.ifBlank { "無題" })
+                                if (profileId == null) dao.insert(toSave) else dao.update(toSave)
+                                WidgetRefresher.request(context)
+                                onDone()
+                            }
+                        },
+                        modifier = Modifier.weight(1f).height(48.dp),
+                    ) {
+                        Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text("保存", fontWeight = FontWeight.SemiBold)
+                    }
+                }
+            }
+        },
     ) { padding ->
+        if (showDiscardConfirm) {
+            AlertDialog(
+                onDismissRequest = { showDiscardConfirm = false },
+                title = { Text("変更を破棄しますか？") },
+                text = { Text("保存していない変更があります。破棄して一覧に戻りますか？") },
+                confirmButton = {
+                    TextButton(onClick = {
+                        showDiscardConfirm = false
+                        onDone()
+                    }) { Text("破棄して戻る", color = MaterialTheme.colorScheme.error) }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showDiscardConfirm = false }) { Text("編集を続ける") }
+                },
+            )
+        }
+
         if (showDeleteConfirm) {
             AlertDialog(
                 onDismissRequest = { showDeleteConfirm = false },
