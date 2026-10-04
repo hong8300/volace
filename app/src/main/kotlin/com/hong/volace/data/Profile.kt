@@ -21,3 +21,37 @@ data class Profile(
     /** Key of a [ProfileIcon]; kept as a string so unknown values degrade gracefully. */
     val iconKey: String = ProfileIcon.DEFAULT.key,
 )
+
+/**
+ * The columns the edit screen owns. Saving through this leaves [Profile.isActive] and
+ * [Profile.orderIndex] alone: the screen holds a copy loaded when it opened, and writing those
+ * back would undo an apply or a reorder done in the meantime (e.g. from a widget), leaving two
+ * profiles marked as applied, or none.
+ */
+data class ProfileEdits(
+    val id: Long,
+    val name: String,
+    val ringerMode: Int,
+    val ringVolume: Int,
+    val notificationVolume: Int,
+    val mediaVolume: Int,
+    val alarmVolume: Int,
+    val voiceCallVolume: Int,
+    val systemVolume: Int,
+    val colorArgb: Int,
+    val iconKey: String,
+)
+
+fun Profile.edits() = ProfileEdits(
+    id = id,
+    name = name,
+    ringerMode = ringerMode,
+    ringVolume = ringVolume,
+    notificationVolume = notificationVolume,
+    mediaVolume = mediaVolume,
+    alarmVolume = alarmVolume,
+    voiceCallVolume = voiceCallVolume,
+    systemVolume = systemVolume,
+    colorArgb = colorArgb,
+    iconKey = iconKey,
+)
