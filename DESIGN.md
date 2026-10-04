@@ -23,11 +23,11 @@
 |---|---|---|
 | 言語 | Kotlin | 標準 |
 | UI(本体アプリ) | Jetpack Compose (Material3) | 2026年時点の標準、スライダーUIと相性が良い |
-| ウィジェット | Jetpack Glance | Compose風APIでRemoteViewsを生成、現行の推奨手段 |
+| ウィジェット | RemoteViews + AppWidgetProvider | 当初は Jetpack Glance だったが、タップ後に再描画されない問題で置き換えた(5.1 / 8.1) |
 | 永続化 | Room | プロファイルのCRUD・並び替えに向く。件数は数個〜十数個想定でオーバースペックにならない |
 | 非同期 | Kotlin Coroutines + Flow | Room/Composeとの親和性 |
 | minSdk | 33 (Android 13) | 対象端末2台のみ・自己配布のため後方互換を切り捨てて簡素化 |
-| targetSdk / compileSdk | 開発時点の最新(35 or 36) | サイドロードのためストア審査要件は無関係。最新APIの制約(通知ポリシー等)にはそのまま追従 |
+| targetSdk / compileSdk | 37(Android 17) | サイドロードのためストア審査要件は無関係。最新APIの制約(通知ポリシー、バックグラウンド音量制限 8.7 等)にはそのまま追従 |
 | 署名 | debug鍵 or 自己管理のrelease鍵 | 2台への配布のみなので簡易でよいが、上書きアップデートを繰り返すなら鍵は固定して保管 |
 
 ## 3. データモデル

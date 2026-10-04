@@ -7,6 +7,7 @@ import android.app.job.JobService
 import android.content.ComponentName
 import android.content.Context
 import android.provider.Settings
+import android.util.Log
 
 /**
  * Keeps the widgets' volume read-out current when something other than Volace changes the volume
@@ -61,7 +62,9 @@ class VolumeWatchJob : JobService() {
                 .setTriggerContentUpdateDelay(UPDATE_DELAY_MS)
                 .setTriggerContentMaxDelay(MAX_DELAY_MS)
                 .build()
-            scheduler.schedule(job)
+            if (scheduler.schedule(job) != JobScheduler.RESULT_SUCCESS) {
+                Log.w("VolumeWatchJob", "could not arm the volume watch; widgets update on the next tap")
+            }
         }
     }
 }
