@@ -53,6 +53,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -67,9 +68,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.hong.volace.audio.ApplyResult
 import com.hong.volace.audio.VolumeApplier
 import com.hong.volace.audio.VolumeStream
 import com.hong.volace.audio.copyWith
+import com.hong.volace.audio.message
 import com.hong.volace.audio.valueOf
 import com.hong.volace.data.Profile
 import com.hong.volace.data.ProfileDao
@@ -78,6 +81,7 @@ import com.hong.volace.data.ProfilePalette
 import com.hong.volace.data.edits
 import com.hong.volace.data.icon
 import com.hong.volace.widget.WidgetRefresher
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -86,7 +90,8 @@ fun ProfileEditScreen(
     profileId: Long?,
     dao: ProfileDao,
     volumeApplier: VolumeApplier,
-    onDone: () -> Unit,
+    /** Back to the list, with a message to show there (e.g. what was saved), or null. */
+    onDone: (message: String?) -> Unit,
 ) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -99,9 +104,15 @@ fun ProfileEditScreen(
     // Back (gesture, key or the arrow) returns to the list. Without this the system back
     // finished the activity, closing the app and silently dropping the edits.
     fun leave() {
-        if (profile != original) showDiscardConfirm = true else onDone()
+        if (profile != original) showDiscardConfirm = true else onDone(null)
     }
     BackHandler { leave() }
+
+    // Read live rather than from the copy loaded on open: a widget may apply another profile
+    // while this screen is open.
+    val editingActive by remember(profileId) {
+        dao.observeAll().map { all -> profileId != null && all.any { it.id == profileId && it.isActive } }
+    }.collectAsState(initial = false)
 
     LaunchedEffect(profileId) {
         val loaded = profileId?.let { dao.getById(it) } ?: run {
@@ -173,16 +184,31 @@ fun ProfileEditScreen(
                         onClick = {
                             scope.launch {
                                 val toSave = current.copy(name = current.name.ifBlank { "無題" })
-                                if (profileId == null) dao.insert(toSave) else dao.saveEdits(toSave.edits())
+                                val message = if (profileId == null) {
+                                    dao.insert(toSave)
+                                    "「${toSave.name}」を保存しました"
+                                } else {
+                                    dao.saveEdits(toSave.edits())
+                                    // The profile in effect is re-applied, otherwise saving alone
+                                    // would turn it into "変更あり" (the device keeps the old values).
+                                    if (dao.getById(profileId)?.isActive == true) {
+                                        when (val result = volumeApplier.apply(toSave)) {
+                                            ApplyResult.Applied -> "「${toSave.name}」を保存して適用しました"
+                                            else -> "保存しました。" + result.message(toSave.name)
+                                        }
+                                    } else {
+                                        "「${toSave.name}」を保存しました"
+                                    }
+                                }
                                 WidgetRefresher.request(context)
-                                onDone()
+                                onDone(message)
                             }
                         },
                         modifier = Modifier.weight(1f).height(48.dp),
                     ) {
                         Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(6.dp))
-                        Text("保存", fontWeight = FontWeight.SemiBold)
+                        Text(if (editingActive) "保存して適用" else "保存", fontWeight = FontWeight.SemiBold)
                     }
                 }
             }
@@ -196,7 +222,7 @@ fun ProfileEditScreen(
                 confirmButton = {
                     TextButton(onClick = {
                         showDiscardConfirm = false
-                        onDone()
+                        onDone(null)
                     }) { Text("破棄して戻る", color = MaterialTheme.colorScheme.error) }
                 },
                 dismissButton = {
@@ -215,7 +241,7 @@ fun ProfileEditScreen(
                         scope.launch {
                             dao.delete(current)
                             WidgetRefresher.request(context)
-                            onDone()
+                            onDone("「${current.name}」を削除しました")
                         }
                     }) { Text("削除", color = MaterialTheme.colorScheme.error) }
                 },
