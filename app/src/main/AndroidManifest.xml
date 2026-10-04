@@ -42,6 +42,15 @@
             </intent-filter>
         </service>
 
+        <!-- Target of the launcher shortcuts: applies one profile and closes. -->
+        <activity
+            android:name=".shortcut.ApplyShortcutActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:taskAffinity=""
+            android:theme="@style/Theme.Volace.Picker" />
+
         <!-- Opened by the tile over whatever is on screen: its own task, kept out of Recents. -->
         <activity
             android:name=".tile.ProfilePickerActivity"

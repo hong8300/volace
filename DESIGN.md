@@ -277,6 +277,19 @@ AudioService は音量を `Settings.System`(`volume_music_speaker` 等、出力�
 - 追加: アプリの「ウィジェット追加」ダイアログに「クイック設定タイル」を置き、`StatusBarManager.requestAddTileService()`
   でシステムの確認ダイアログを出す。ロック中は `unlockAndRun` で解除してから開く
 
+### 5.10 ランチャーのショートカット(issue #22)
+
+アプリアイコンの長押しメニューに、先頭4件のプロファイルを「『○○』を適用」として出す(`ProfileShortcuts`)。
+メニューの ＋ やドラッグでホーム画面に固定もできる。
+
+- アイコンはプロファイル色の上に白いプロファイルアイコンを描いた adaptive bitmap
+- 起動先は透明な `ApplyShortcutActivity`(適用して閉じる)。ショートカットは Activity しか起動できず、
+  Android 17 では表示中の Activity から適用するのが確実なため(8.7)
+- 更新は `WidgetRefresher.refreshAll()` の中で行うが、**表示内容(id・名前・アイコン・色・順番)が変わったときだけ** `setDynamicShortcuts` する。
+  ShortcutManager はバックグラウンドからの更新回数を制限しており、再描画は音量が変わるたびにバックグラウンドで走るため。
+  制限で失敗したときは記録を更新せず、次の機会に再試行する
+- 削除したプロファイルの固定ショートカットは無効化(「削除されたプロファイルです」)、名前などを変えたものは更新する
+
 ## 6. パーミッション
 
 ```xml
