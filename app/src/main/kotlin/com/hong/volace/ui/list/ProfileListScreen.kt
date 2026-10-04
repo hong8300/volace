@@ -19,7 +19,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -36,12 +36,12 @@ import androidx.compose.material.icons.filled.VolumeOff
 import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomAppBar
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -180,18 +180,20 @@ fun ProfileListScreen(
             item {
                 Text(
                     text = if (reorderMode) "↑↓ で並び順を変更（ウィジェットの表示順にもなります）"
-                    else "タップで即時適用・鉛筆アイコンで編集",
+                    else "「適用」で切り替え・「編集」で内容を変更",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 6.dp),
                 )
             }
-            items(profiles, key = { it.id }) { profile ->
+            itemsIndexed(profiles, key = { _, it -> it.id }) { index, profile ->
                 ProfileRow(
                     profile = profile,
                     drifted = profile.isActive && drifted,
                     maxes = maxes,
                     reorderMode = reorderMode,
+                    canMoveUp = index > 0,
+                    canMoveDown = index < profiles.lastIndex,
                     onApply = {
                         scope.launch {
                             val outcome = ProfileSwitcher.apply(context, profile.id) ?: return@launch
@@ -339,12 +341,14 @@ private fun ProfileRow(
     drifted: Boolean,
     maxes: Map<VolumeStream, Int>,
     reorderMode: Boolean,
+    canMoveUp: Boolean,
+    canMoveDown: Boolean,
     onApply: () -> Unit,
     onEdit: () -> Unit,
     onMove: (Int) -> Unit,
 ) {
     val accent = Color(profile.colorArgb)
-    // A drifted profile keeps only an outline, like its widget cell: tapping it re-applies.
+    // A drifted profile keeps only an outline, like its widget cell.
     val active = profile.isActive && !drifted
 
     Surface(
@@ -357,88 +361,100 @@ private fun ProfileRow(
         },
         modifier = Modifier.fillMaxWidth(),
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(enabled = !reorderMode, onClick = onApply)
-                .padding(horizontal = 12.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(46.dp)
-                    .clip(CircleShape)
-                    .background(if (active) accent else accent.copy(alpha = 0.20f)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    painter = painterResource(profile.icon.res),
-                    contentDescription = null,
-                    tint = if (active) Color.White else accent,
-                    modifier = Modifier.size(24.dp),
-                )
-            }
-
-            Spacer(Modifier.width(12.dp))
-
-            Column(modifier = Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = profile.name,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        maxLines = 1,
+        // The card itself does nothing: tapping it to look at a profile used to apply it on the
+        // spot. Applying and editing are the spelled-out buttons below.
+        Column(modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 12.dp, bottom = 8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(46.dp)
+                        .clip(CircleShape)
+                        .background(if (active) accent else accent.copy(alpha = 0.20f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        painter = painterResource(profile.icon.res),
+                        contentDescription = null,
+                        tint = if (active) Color.White else accent,
+                        modifier = Modifier.size(24.dp),
                     )
-                    if (profile.isActive) {
-                        Spacer(Modifier.width(8.dp))
-                        ActivePill(accent, drifted)
+                }
+
+                Spacer(Modifier.width(12.dp))
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = profile.name,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 1,
+                        )
+                        if (profile.isActive) {
+                            Spacer(Modifier.width(8.dp))
+                            ActivePill(accent, drifted)
+                        }
+                    }
+                    Spacer(Modifier.height(3.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = ringerIcon(profile.ringerMode),
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(14.dp),
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text(
+                            text = ringerModeLabel(profile.ringerMode),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
                 }
-                Spacer(Modifier.height(3.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = ringerIcon(profile.ringerMode),
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(14.dp),
-                    )
-                    Spacer(Modifier.width(4.dp))
-                    Text(
-                        text = ringerModeLabel(profile.ringerMode),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+
+                MiniVolumeBars(profile, maxes, accent)
             }
 
-            if (reorderMode) {
-                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    FilledIconButton(
-                        onClick = { onMove(-1) },
-                        modifier = Modifier.size(38.dp),
-                        colors = IconButtonDefaults.filledIconButtonColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                if (reorderMode) {
+                    OutlinedButton(onClick = { onMove(-1) }, enabled = canMoveUp) {
+                        Icon(Icons.Filled.KeyboardArrowUp, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text("上へ")
+                    }
+                    OutlinedButton(onClick = { onMove(1) }, enabled = canMoveDown) {
+                        Icon(Icons.Filled.KeyboardArrowDown, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text("下へ")
+                    }
+                } else {
+                    OutlinedButton(onClick = onEdit) {
+                        Icon(Icons.Filled.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text("編集")
+                    }
+                    FilledTonalButton(
+                        onClick = onApply,
+                        // Re-applying a profile that is in effect as is would change nothing.
+                        enabled = !active,
+                        colors = ButtonDefaults.filledTonalButtonColors(
+                            containerColor = accent.copy(alpha = 0.22f),
                             contentColor = MaterialTheme.colorScheme.onSurface,
                         ),
-                    ) { Icon(Icons.Filled.KeyboardArrowUp, contentDescription = "上へ") }
-                    FilledIconButton(
-                        onClick = { onMove(1) },
-                        modifier = Modifier.size(38.dp),
-                        colors = IconButtonDefaults.filledIconButtonColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                            contentColor = MaterialTheme.colorScheme.onSurface,
-                        ),
-                    ) { Icon(Icons.Filled.KeyboardArrowDown, contentDescription = "下へ") }
-                }
-            } else {
-                MiniVolumeBars(profile, maxes, accent)
-                Spacer(Modifier.width(4.dp))
-                IconButton(onClick = onEdit, modifier = Modifier.size(44.dp)) {
-                    Icon(
-                        Icons.Filled.Edit,
-                        contentDescription = "編集",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    ) {
+                        Text(
+                            when {
+                                active -> "適用中"
+                                drifted -> "再適用"
+                                else -> "適用"
+                            },
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    }
                 }
             }
         }
