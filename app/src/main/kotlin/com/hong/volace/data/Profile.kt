@@ -20,6 +20,11 @@ data class Profile(
     val colorArgb: Int = ProfilePalette.DEFAULT,
     /** Key of a [ProfileIcon]; kept as a string so unknown values degrade gracefully. */
     val iconKey: String = ProfileIcon.DEFAULT.key,
+    /**
+     * Streams this profile leaves alone ("変更しない"), one bit each (VolumeStream.keepBit). Their
+     * stored levels are kept so unticking brings them back.
+     */
+    val keepMask: Int = 0,
 )
 
 /**
@@ -40,6 +45,7 @@ data class ProfileEdits(
     val systemVolume: Int,
     val colorArgb: Int,
     val iconKey: String,
+    val keepMask: Int,
 )
 
 fun Profile.edits() = ProfileEdits(
@@ -54,4 +60,5 @@ fun Profile.edits() = ProfileEdits(
     systemVolume = systemVolume,
     colorArgb = colorArgb,
     iconKey = iconKey,
+    keepMask = keepMask,
 )

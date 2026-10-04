@@ -7,7 +7,7 @@ import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
-@Database(entities = [Profile::class], version = 2, exportSchema = true)
+@Database(entities = [Profile::class], version = 3, exportSchema = true)
 abstract class VolaceDatabase : RoomDatabase() {
     abstract fun profileDao(): ProfileDao
 
@@ -26,11 +26,18 @@ abstract class VolaceDatabase : RoomDatabase() {
             }
         }
 
+        /** v2 -> v3: per-stream "変更しない" (keepMask). */
+        internal val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE profiles ADD COLUMN keepMask INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
         /**
          * Every migration, oldest first. When bumping the version: add the migration here, commit
          * the new schema JSON under app/schemas, and add a case to MigrationTest.
          */
-        internal val MIGRATIONS = arrayOf(MIGRATION_1_2)
+        internal val MIGRATIONS = arrayOf(MIGRATION_1_2, MIGRATION_2_3)
 
         internal const val NAME = "volace.db"
 

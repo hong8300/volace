@@ -51,6 +51,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Slider
+import androidx.compose.material3.Switch
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -69,6 +70,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -80,6 +82,8 @@ import com.hong.volace.audio.ProfileSwitcher
 import com.hong.volace.audio.VolumeApplier
 import com.hong.volace.audio.VolumeStream
 import com.hong.volace.audio.copyWith
+import com.hong.volace.audio.isKeptBy
+import com.hong.volace.audio.keepIn
 import com.hong.volace.audio.message
 import com.hong.volace.audio.ranges
 import com.hong.volace.audio.valueOf
@@ -404,6 +408,8 @@ fun ProfileEditScreen(
                     max = ranges.max(stream),
                     accent = accent,
                     note = streamNote(stream, current.ringerMode),
+                    kept = stream.isKeptBy(current),
+                    onKeptChange = { keep -> profile = stream.keepIn(current, keep) },
                     onValueChange = { newValue -> profile = stream.copyWith(current, newValue) },
                 )
             }
@@ -493,6 +499,9 @@ private fun StreamSliderRow(
     accent: Color,
     /** Shown next to the name, e.g. that the stream does not sound in this ringer mode. */
     note: String?,
+    /** "変更しない": applying leaves this stream as it is; the level below is kept for later. */
+    kept: Boolean,
+    onKeptChange: (Boolean) -> Unit,
     onValueChange: (Int) -> Unit,
 ) {
     Surface(
@@ -524,19 +533,39 @@ private fun StreamSliderRow(
                     }
                 }
                 Text(
-                    "$value / $max",
+                    if (kept) "変更しない" else "$value / $max",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onKeptChange(!kept) }
+                    .padding(vertical = 2.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    "この音量は変更しない",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f),
+                )
+                Switch(
+                    checked = kept,
+                    onCheckedChange = onKeptChange,
+                    modifier = Modifier.scale(0.8f),
                 )
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(
                     onClick = { onValueChange((value - 1).coerceAtLeast(range.first)) },
-                    enabled = value > range.first,
+                    enabled = !kept && value > range.first,
                     modifier = Modifier.size(36.dp),
                 ) { Icon(Icons.Filled.Remove, contentDescription = "下げる", modifier = Modifier.size(18.dp)) }
                 Slider(
                     value = value.toFloat(),
+                    enabled = !kept,
                     // Rounded: the snapped float can land a hair under the step (2.9999998).
                     onValueChange = { onValueChange(it.roundToInt()) },
                     valueRange = range.first.toFloat()..range.last.toFloat(),
@@ -552,7 +581,7 @@ private fun StreamSliderRow(
                 )
                 IconButton(
                     onClick = { onValueChange((value + 1).coerceAtMost(range.last)) },
-                    enabled = value < range.last,
+                    enabled = !kept && value < range.last,
                     modifier = Modifier.size(36.dp),
                 ) { Icon(Icons.Filled.Add, contentDescription = "上げる", modifier = Modifier.size(18.dp)) }
             }
@@ -601,7 +630,7 @@ private val ProfileSaver = listSaver<Profile?, Any>(
         if (p == null) emptyList() else listOf(
             p.id, p.name, p.orderIndex, p.ringerMode, p.ringVolume, p.notificationVolume,
             p.mediaVolume, p.alarmVolume, p.voiceCallVolume, p.systemVolume, p.isActive,
-            p.colorArgb, p.iconKey,
+            p.colorArgb, p.iconKey, p.keepMask,
         )
     },
     restore = { v ->
@@ -619,6 +648,7 @@ private val ProfileSaver = listSaver<Profile?, Any>(
             isActive = v[10] as Boolean,
             colorArgb = v[11] as Int,
             iconKey = v[12] as String,
+            keepMask = v[13] as Int,
         )
     },
 )

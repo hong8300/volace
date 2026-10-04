@@ -1,5 +1,7 @@
 package com.hong.volace.data
 
+import com.hong.volace.audio.VolumeStream
+import com.hong.volace.audio.isKeptBy
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
@@ -32,7 +34,11 @@ object ProfileBackup {
                     .put("voiceCall", p.voiceCallVolume)
                     .put("system", p.systemVolume)
                     .put("color", p.colorArgb)
-                    .put("icon", p.iconKey),
+                    .put("icon", p.iconKey)
+                    .put(
+                        "keep",
+                        JSONArray(VolumeStream.entries.filter { it.isKeptBy(p) }.map { it.key }),
+                    ),
             )
         }
         return JSONObject()
@@ -79,7 +85,15 @@ object ProfileBackup {
                 colorArgb = int("color"),
                 // Unknown icons fall back to the default when drawn (ProfileIcon.fromKey).
                 iconKey = o.optString("icon", ProfileIcon.DEFAULT.key),
+                keepMask = keepMask(o.optJSONArray("keep")),
             )
         }
+    }
+
+    /** Unknown names are ignored, so a newer file with more streams still loads. */
+    private fun keepMask(keep: JSONArray?): Int {
+        if (keep == null) return 0
+        val byKey = VolumeStream.entries.associateBy { it.key }
+        return (0 until keep.length()).fold(0) { mask, i -> mask or (byKey[keep.optString(i)]?.keepBit ?: 0) }
     }
 }

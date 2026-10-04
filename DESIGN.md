@@ -45,12 +45,17 @@ Profile
   voiceCallVolume: Int      // STREAM_VOICE_CALL
   systemVolume: Int         // STREAM_SYSTEM
   isActive: Boolean         // 直近に適用したプロファイル(一覧のハイライト表示用)
+  keepMask: Int             // 「変更しない」ストリーム(ビット列。v3〜)
   colorArgb: Int            // アクセントカラー(一覧・ウィジェット共通)
   iconKey: String           // ProfileIcon のキー。未知の値は既定アイコンにフォールバック
 ```
 
-Room の schema version は **2**。v1 → v2 で `colorArgb` / `iconKey` を `ALTER TABLE ADD COLUMN` する
-マイグレーションを持つ(実機で既存データを保持したまま移行できることを確認済み)。
+Room の schema version は **3**。v1 → v2 で `colorArgb` / `iconKey`、v2 → v3 で `keepMask` を `ALTER TABLE ADD COLUMN` する
+マイグレーションを持つ(どちらも実機で既存データを保持したまま移行できることを確認済み)。
+
+`keepMask`(issue #21)はストリームごとの「変更しない」。1ストリーム1ビット(`VolumeStream.keepBit`、DB に保存されるので番号を変えない)。
+立っているストリームは適用時に書き込まず、「変更あり」の判定からも外す。音量の値は残すので、スイッチを戻せば元の値で適用される。
+編集画面の各音量に「この音量は変更しない」スイッチ、一覧のミニバーは空のバー、バックアップは `"keep": ["media", ...]`(古いファイルは「なし」扱い)。
 
 **スキーマ変更のルール(issue #8)**
 - `fallbackToDestructiveMigration` は**使わない**。以前は併用していたが、マイグレーションを書き忘れたとき
