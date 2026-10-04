@@ -45,11 +45,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.hong.volace.MainActivity
-import com.hong.volace.audio.ApplyResult
-import com.hong.volace.audio.VolumeApplier
+import com.hong.volace.audio.ProfileSwitcher
 import com.hong.volace.audio.message
 import com.hong.volace.data.Profile
-import com.hong.volace.data.VolaceDatabase
 import com.hong.volace.data.icon
 import com.hong.volace.ui.theme.VolaceTheme
 import com.hong.volace.widget.WidgetRefresher
@@ -78,15 +76,11 @@ class ProfilePickerActivity : ComponentActivity() {
     }
 
     private suspend fun apply(profile: Profile) {
-        val result = withContext(Dispatchers.IO) {
-            VolumeApplier(this@ProfilePickerActivity).apply(profile).also {
-                if (it == ApplyResult.Applied) {
-                    VolaceDatabase.get(applicationContext).profileDao().applyActive(profile.id)
-                }
-            }
-        }
+        val outcome = ProfileSwitcher.apply(this, profile.id)
         WidgetRefresher.request(this)
-        Toast.makeText(this, result.message(profile.name), Toast.LENGTH_SHORT).show()
+        if (outcome != null) {
+            Toast.makeText(this, outcome.result.message(outcome.profile.name), Toast.LENGTH_SHORT).show()
+        }
         finish()
     }
 

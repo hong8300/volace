@@ -67,7 +67,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.hong.volace.audio.ApplyResult
+import com.hong.volace.audio.ProfileSwitcher
 import com.hong.volace.audio.VolumeApplier
 import com.hong.volace.audio.message
 import com.hong.volace.audio.VolumeStream
@@ -190,13 +190,10 @@ fun ProfileListScreen(
                     reorderMode = reorderMode,
                     onApply = {
                         scope.launch {
-                            val result = volumeApplier.apply(profile)
-                            // Only what Android accepted counts as applied; anything else stays
-                            // visible as a message instead of a misleading "適用中".
-                            if (result == ApplyResult.Applied) dao.applyActive(profile.id)
+                            val outcome = ProfileSwitcher.apply(context, profile.id) ?: return@launch
                             WidgetRefresher.request(context)
                             snackbar.currentSnackbarData?.dismiss()
-                            snackbar.showSnackbar(result.message(profile.name))
+                            snackbar.showSnackbar(outcome.result.message(outcome.profile.name))
                         }
                     },
                     onEdit = { onEditProfile(profile.id) },

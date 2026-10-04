@@ -69,6 +69,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.hong.volace.audio.ApplyResult
+import com.hong.volace.audio.ProfileSwitcher
 import com.hong.volace.audio.VolumeApplier
 import com.hong.volace.audio.VolumeStream
 import com.hong.volace.audio.copyWith
@@ -191,13 +192,11 @@ fun ProfileEditScreen(
                                     dao.saveEdits(toSave.edits())
                                     // The profile in effect is re-applied, otherwise saving alone
                                     // would turn it into "変更あり" (the device keeps the old values).
-                                    if (dao.getById(profileId)?.isActive == true) {
-                                        when (val result = volumeApplier.apply(toSave)) {
-                                            ApplyResult.Applied -> "「${toSave.name}」を保存して適用しました"
-                                            else -> "保存しました。" + result.message(toSave.name)
-                                        }
-                                    } else {
-                                        "「${toSave.name}」を保存しました"
+                                    val outcome = ProfileSwitcher.apply(context, profileId, onlyIfActive = true)
+                                    when (outcome?.result) {
+                                        null -> "「${toSave.name}」を保存しました"
+                                        ApplyResult.Applied -> "「${toSave.name}」を保存して適用しました"
+                                        else -> "保存しました。" + outcome.result.message(toSave.name)
                                     }
                                 }
                                 WidgetRefresher.request(context)
