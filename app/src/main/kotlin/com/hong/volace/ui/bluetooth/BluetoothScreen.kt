@@ -1,5 +1,6 @@
 package com.hong.volace.ui.bluetooth
 
+import com.hong.volace.ui.theme.cardShape
 import android.Manifest
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothManager
@@ -163,7 +164,7 @@ fun BluetoothScreen(profileDao: ProfileDao, ruleDao: BluetoothRuleDao, onBack: (
             status?.let { last ->
                 item(key = "status") {
                     Surface(
-                        shape = RoundedCornerShape(20.dp),
+                        shape = cardShape(),
                         color = MaterialTheme.colorScheme.surfaceContainerHigh,
                         modifier = Modifier.fillMaxWidth(),
                     ) {
@@ -218,7 +219,7 @@ fun BluetoothSummaryCard(rules: List<BluetoothRule>, profiles: List<Profile>, st
     val failed = status?.outcome?.failed == true
     Surface(
         onClick = onClick,
-        shape = RoundedCornerShape(20.dp),
+        shape = cardShape(),
         color = MaterialTheme.colorScheme.surfaceContainer,
         modifier = Modifier.fillMaxWidth(),
     ) {
@@ -278,7 +279,7 @@ private fun RuleRow(rule: BluetoothRule, profiles: List<Profile>, onToggle: (Boo
     val detail = listOf(connect, disconnect).joinToString(stringResource(R.string.list_separator))
     Surface(
         onClick = onClick,
-        shape = RoundedCornerShape(20.dp),
+        shape = cardShape(),
         color = MaterialTheme.colorScheme.surfaceContainer,
         modifier = Modifier.fillMaxWidth(),
     ) {

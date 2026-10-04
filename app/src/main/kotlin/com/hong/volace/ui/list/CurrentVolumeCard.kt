@@ -1,5 +1,6 @@
 package com.hong.volace.ui.list
 
+import com.hong.volace.ui.theme.cardShape
 import android.app.NotificationManager
 import com.hong.volace.audio.DndModes
 import android.content.BroadcastReceiver
@@ -126,7 +127,7 @@ fun CurrentVolumeCard(
     val dnd = remember(device) { DndModes(context).state() }
     val accent = active?.let { Color(it.colorArgb) } ?: MaterialTheme.colorScheme.primary
     Surface(
-        shape = RoundedCornerShape(20.dp),
+        shape = cardShape(),
         color = MaterialTheme.colorScheme.surfaceContainer,
         modifier = Modifier.fillMaxWidth(),
     ) {

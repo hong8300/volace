@@ -2,7 +2,26 @@ package com.hong.volace.ui.theme
 
 import android.app.Activity
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ColorScheme
+import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Shapes
+import androidx.compose.material3.Text
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.PlatformTextStyle
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import com.hong.volace.data.ProfileIcon
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
@@ -94,11 +113,81 @@ private val MidnightColors = darkColorScheme(
     error = Color(0xFFFFB4AB),
 )
 
+/** A skin made from a colour table (SkinColors), light or dark. */
+private fun scheme(c: SkinColors): ColorScheme {
+    fun col(argb: Int) = Color(argb)
+    return if (c.dark) {
+        darkColorScheme(
+            primary = col(c.primary), onPrimary = col(c.onPrimary),
+            primaryContainer = col(c.primaryContainer), onPrimaryContainer = col(c.onPrimaryContainer),
+            secondary = col(c.secondary), background = col(c.background), onBackground = col(c.text),
+            surface = col(c.background), onSurface = col(c.text), surfaceVariant = col(c.surfaceHigh),
+            onSurfaceVariant = col(c.subText), surfaceContainer = col(c.surface), surfaceContainerHigh = col(c.surfaceHigh),
+            outline = col(c.outline), outlineVariant = col(c.outlineVariant), error = Color(0xFFFFB4AB),
+        )
+    } else {
+        lightColorScheme(
+            primary = col(c.primary), onPrimary = col(c.onPrimary),
+            primaryContainer = col(c.primaryContainer), onPrimaryContainer = col(c.onPrimaryContainer),
+            secondary = col(c.secondary), background = col(c.background), onBackground = col(c.text),
+            surface = col(c.background), onSurface = col(c.text), surfaceVariant = col(c.surfaceHigh),
+            onSurfaceVariant = col(c.subText), surfaceContainer = col(c.surface), surfaceContainerHigh = col(c.surfaceHigh),
+            outline = col(c.outline), outlineVariant = col(c.outlineVariant), error = Color(0xFFBA1A1A),
+        )
+    }
+}
+
 /** Whether [skin] draws dark, given the system setting (for AUTO / DYNAMIC). */
 fun Skin.isDark(systemDark: Boolean): Boolean = when (this) {
     Skin.LIGHT -> false
     Skin.AUTO, Skin.DYNAMIC -> systemDark
     Skin.DEFAULT, Skin.HIGH_CONTRAST, Skin.MIDNIGHT -> true
+    else -> colors?.dark ?: true
+}
+
+/** Rounder corners for the pastel skins (Skin.rounded); Material's defaults otherwise. */
+private val RoundedShapes = Shapes(
+    extraSmall = RoundedCornerShape(10.dp),
+    small = RoundedCornerShape(16.dp),
+    medium = RoundedCornerShape(22.dp),
+    large = RoundedCornerShape(28.dp),
+    extraLarge = RoundedCornerShape(36.dp),
+)
+
+/** Whether the skin draws rounder (cards use [cardShape]). */
+val LocalRoundedSkin = staticCompositionLocalOf { false }
+
+/** The cards' shape: rounder with the pastel skins. */
+@Composable
+fun cardShape(): Shape = RoundedCornerShape(if (LocalRoundedSkin.current) 28.dp else 20.dp)
+
+/** Profile icons as line icons or emoji (IconStyle), for every screen. */
+val LocalIconStyle = staticCompositionLocalOf { IconStyle.STANDARD }
+
+/**
+ * A profile's icon at [size]: the line icon tinted [tint], or its emoji when the "かわいい" icon
+ * style is on (emoji keep their own colours).
+ */
+@Composable
+fun ProfileIconView(
+    icon: ProfileIcon,
+    tint: Color,
+    size: Dp,
+    modifier: Modifier = Modifier,
+    contentDescription: String? = null,
+) {
+    if (LocalIconStyle.current == IconStyle.EMOJI) {
+        val fontSize = with(LocalDensity.current) { (size * 0.9f).toSp() }
+        Text(
+            text = icon.emoji,
+            fontSize = fontSize,
+            lineHeight = fontSize,
+            style = LocalTextStyle.current.copy(platformStyle = PlatformTextStyle(includeFontPadding = false)),
+            modifier = modifier.semantics { if (contentDescription != null) this.contentDescription = contentDescription },
+        )
+    } else {
+        Icon(painterResource(icon.res), contentDescription = contentDescription, tint = tint, modifier = modifier.size(size))
+    }
 }
 
 @Composable
@@ -107,6 +196,7 @@ fun VolaceTheme(
     content: @Composable () -> Unit,
 ) {
     val context = LocalContext.current
+    val iconStyle = SkinStore.iconState(context).collectAsState().value
     val dark = skin.isDark(isSystemInDarkTheme())
     val colors = when (skin) {
         Skin.DEFAULT -> DarkColors
@@ -115,6 +205,7 @@ fun VolaceTheme(
         Skin.DYNAMIC -> if (dark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         Skin.HIGH_CONTRAST -> HighContrastColors
         Skin.MIDNIGHT -> MidnightColors
+        else -> skin.colors?.let(::scheme) ?: DarkColors
     }
     // A skin can be dark while the system is light (and the reverse): keep the status and
     // navigation bar icons readable against it.
@@ -128,7 +219,13 @@ fun VolaceTheme(
             }
         }
     }
-    MaterialTheme(colorScheme = colors, content = content)
+    CompositionLocalProvider(LocalRoundedSkin provides skin.rounded, LocalIconStyle provides iconStyle) {
+        if (skin.rounded) {
+            MaterialTheme(colorScheme = colors, shapes = RoundedShapes, content = content)
+        } else {
+            MaterialTheme(colorScheme = colors, content = content)
+        }
+    }
 }
 
 /** Content on a profile's colour: white, or near black on light colours (see contentColorOn). */

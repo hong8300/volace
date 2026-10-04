@@ -5,24 +5,26 @@ import androidx.annotation.LayoutRes
 import androidx.annotation.StringRes
 import com.hong.volace.R
 
-/** The four view ids that make up one tappable profile cell in a widget layout. */
+/** The view ids that make up one tappable profile cell in a widget layout. */
 internal data class CellRefs(
     val root: Int,
     val bg: Int,
     val ring: Int,
     val icon: Int,
     val name: Int,
+    /** Shown instead of [icon] with the "かわいい" icon style (IconStyle.EMOJI). */
+    val emoji: Int,
 )
 
 internal val CELLS: List<CellRefs> = listOf(
-    CellRefs(R.id.cell_0, R.id.cell_0_bg, R.id.cell_0_ring, R.id.cell_0_icon, R.id.cell_0_name),
-    CellRefs(R.id.cell_1, R.id.cell_1_bg, R.id.cell_1_ring, R.id.cell_1_icon, R.id.cell_1_name),
-    CellRefs(R.id.cell_2, R.id.cell_2_bg, R.id.cell_2_ring, R.id.cell_2_icon, R.id.cell_2_name),
-    CellRefs(R.id.cell_3, R.id.cell_3_bg, R.id.cell_3_ring, R.id.cell_3_icon, R.id.cell_3_name),
-    CellRefs(R.id.cell_4, R.id.cell_4_bg, R.id.cell_4_ring, R.id.cell_4_icon, R.id.cell_4_name),
-    CellRefs(R.id.cell_5, R.id.cell_5_bg, R.id.cell_5_ring, R.id.cell_5_icon, R.id.cell_5_name),
-    CellRefs(R.id.cell_6, R.id.cell_6_bg, R.id.cell_6_ring, R.id.cell_6_icon, R.id.cell_6_name),
-    CellRefs(R.id.cell_7, R.id.cell_7_bg, R.id.cell_7_ring, R.id.cell_7_icon, R.id.cell_7_name),
+    CellRefs(R.id.cell_0, R.id.cell_0_bg, R.id.cell_0_ring, R.id.cell_0_icon, R.id.cell_0_name, R.id.cell_0_emoji),
+    CellRefs(R.id.cell_1, R.id.cell_1_bg, R.id.cell_1_ring, R.id.cell_1_icon, R.id.cell_1_name, R.id.cell_1_emoji),
+    CellRefs(R.id.cell_2, R.id.cell_2_bg, R.id.cell_2_ring, R.id.cell_2_icon, R.id.cell_2_name, R.id.cell_2_emoji),
+    CellRefs(R.id.cell_3, R.id.cell_3_bg, R.id.cell_3_ring, R.id.cell_3_icon, R.id.cell_3_name, R.id.cell_3_emoji),
+    CellRefs(R.id.cell_4, R.id.cell_4_bg, R.id.cell_4_ring, R.id.cell_4_icon, R.id.cell_4_name, R.id.cell_4_emoji),
+    CellRefs(R.id.cell_5, R.id.cell_5_bg, R.id.cell_5_ring, R.id.cell_5_icon, R.id.cell_5_name, R.id.cell_5_emoji),
+    CellRefs(R.id.cell_6, R.id.cell_6_bg, R.id.cell_6_ring, R.id.cell_6_icon, R.id.cell_6_name, R.id.cell_6_emoji),
+    CellRefs(R.id.cell_7, R.id.cell_7_bg, R.id.cell_7_ring, R.id.cell_7_icon, R.id.cell_7_name, R.id.cell_7_emoji),
 )
 
 /** View ids of one stream's bar in the status panel. [value] only exists in the full panel. */

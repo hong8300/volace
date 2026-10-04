@@ -1,5 +1,7 @@
 package com.hong.volace.ui.schedule
 
+import com.hong.volace.ui.theme.cardShape
+import com.hong.volace.ui.theme.ProfileIconView
 import android.Manifest
 import android.app.TimePickerDialog
 import android.content.Context
@@ -263,7 +265,7 @@ fun ScheduleSummaryCard(
     val failed = status?.outcome?.failed == true
     Surface(
         onClick = onClick,
-        shape = RoundedCornerShape(20.dp),
+        shape = cardShape(),
         color = MaterialTheme.colorScheme.surfaceContainer,
         modifier = Modifier.fillMaxWidth(),
     ) {
@@ -321,7 +323,7 @@ private fun StatusCard(
     val context = LocalContext.current
     val next = ScheduleCalc.next(rules, skips, now)
     Surface(
-        shape = RoundedCornerShape(20.dp),
+        shape = cardShape(),
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
         modifier = Modifier.fillMaxWidth(),
     ) {
@@ -374,7 +376,7 @@ private fun RuleRow(rule: ScheduleRule, profile: Profile?, onToggle: (Boolean) -
     val dim = if (rule.enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
     Surface(
         onClick = onClick,
-        shape = RoundedCornerShape(20.dp),
+        shape = cardShape(),
         color = MaterialTheme.colorScheme.surfaceContainer,
         modifier = Modifier.fillMaxWidth(),
     ) {
@@ -393,7 +395,7 @@ private fun RuleRow(rule: ScheduleRule, profile: Profile?, onToggle: (Boolean) -
                             modifier = Modifier.size(22.dp).background(accent.copy(alpha = 0.20f), CircleShape),
                             contentAlignment = Alignment.Center,
                         ) {
-                            Icon(painterResource(profile.icon.res), contentDescription = null, tint = accent, modifier = Modifier.size(14.dp))
+                            ProfileIconView(profile.icon, tint = accent, size = 14.dp)
                         }
                         Spacer(Modifier.width(6.dp))
                     }
@@ -517,12 +519,7 @@ private fun RuleDialog(
                         ) {
                             RadioButton(selected = profileId == profile.id, onClick = null)
                             Spacer(Modifier.width(8.dp))
-                            Icon(
-                                painterResource(profile.icon.res),
-                                contentDescription = null,
-                                tint = Color(profile.colorArgb),
-                                modifier = Modifier.size(18.dp),
-                            )
+                            ProfileIconView(profile.icon, tint = Color(profile.colorArgb), size = 18.dp)
                             Spacer(Modifier.width(6.dp))
                             Text(profile.name, style = MaterialTheme.typography.bodyMedium)
                         }

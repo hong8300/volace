@@ -1,5 +1,6 @@
 package com.hong.volace.widget
 
+import com.hong.volace.ui.theme.SkinColors
 import android.content.Context
 import com.hong.volace.ui.theme.Skin
 
@@ -56,7 +57,20 @@ class WidgetPalette(val day: Colors, val night: Colors) {
             Skin.HIGH_CONTRAST -> WidgetPalette(CONTRAST, CONTRAST)
             Skin.MIDNIGHT -> WidgetPalette(MIDNIGHT, MIDNIGHT)
             Skin.DYNAMIC -> dynamic(context)
+            else -> skin.colors?.let { fromTable(it) }?.let { WidgetPalette(it, it) } ?: WidgetPalette(DARK, DARK)
         }
+
+        /** The widget set of a skin made from a colour table (the app uses the same table, Theme.kt). */
+        internal fun fromTable(c: SkinColors) = Colors(
+            background = withAlpha(c.background, 0xF2),
+            panel = withAlpha(c.primary, if (c.dark) 0x24 else 0x1A),
+            text = c.text,
+            subText = c.subText,
+            track = c.text,
+            accent = c.primary,
+            emptyCell = c.surfaceHigh,
+            isLight = !c.dark,
+        )
 
         /** Material You: the wallpaper's tonal palette, read now (a wallpaper change shows on the next redraw). */
         private fun dynamic(context: Context): WidgetPalette {
