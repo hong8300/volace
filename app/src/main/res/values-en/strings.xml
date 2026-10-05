@@ -253,7 +253,7 @@
     <string name="timer_restore_due">Go back</string>
     <!-- Schedule -->
     <string name="schedule_title">Schedule</string>
-    <string name="schedule_intro">Switches once at each time you set. Anything you choose by hand stays until the next one.</string>
+    <string name="schedule_intro">Switches once at each time you set. Anything you choose by hand stays until the next one. If a switch does not work, a notification tells you.</string>
     <string name="schedule_next_label">Next switch</string>
     <string name="schedule_next">“%2$s” at %1$s</string>
     <string name="schedule_next_none">Nothing scheduled</string>
@@ -342,7 +342,7 @@
     <string name="dnd_short_alarms_off">no alarms</string>
     <!-- Bluetooth -->
     <string name="bt_title">Bluetooth</string>
-    <string name="bt_intro">Switches when you connect earbuds or a car, and switches back when they disconnect. Only at those two moments: a profile you choose by hand in between stays.</string>
+    <string name="bt_intro">Switches when you connect earbuds or a car, and switches back when they disconnect. Only at those two moments: a profile you choose by hand in between stays. If a switch does not work, a notification tells you.</string>
     <string name="bt_permission">Seeing your paired devices and their connections needs the “Nearby devices” permission.</string>
     <string name="bt_permission_button">Allow</string>
     <string name="bt_last_label">Last</string>
@@ -456,4 +456,13 @@
     <string name="icon_style_standard">Standard</string>
     <string name="icon_style_emoji">Cute (emoji)</string>
     <string name="icon_style_desc">For the profiles’ icons in the list, widgets, picker and shortcuts</string>
+
+    <!-- "Alarms & reminders" (SCHEDULE_EXACT_ALARM): needed to start timed profiles, the schedule and Bluetooth switches on time -->
+    <string name="exact_alarm_notice">To switch on time, allow “Alarms &amp; reminders” in Settings. Without it, a switch can come late, or wait until you tap its notification.</string>
+    <string name="exact_alarm_notice_bluetooth">Allow “Alarms &amp; reminders” so a switch happens right away when you connect a device, even if the phone is in a power-saving state. Without it, a switch can come late.</string>
+    <string name="exact_alarm_open_settings">Open Settings</string>
+    <string name="exact_alarm_list_missing">“Alarms &amp; reminders” is not allowed (switches can come late)</string>
+    <string name="settings_exact_alarm">Alarms &amp; reminders</string>
+    <string name="settings_exact_alarm_on">Allowed. Timed profiles, the schedule and Bluetooth can start on time</string>
+    <string name="settings_exact_alarm_off">Not allowed. Switches can come late or need a tap on the notification. Tap to open Settings</string>
 </resources>

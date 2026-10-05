@@ -1,6 +1,5 @@
 package com.hong.volace.schedule
 
-import android.annotation.SuppressLint
 import android.app.AlarmManager
 import android.app.Notification
 import android.app.NotificationChannel
@@ -14,6 +13,7 @@ import android.util.Log
 import androidx.core.content.edit
 import com.hong.volace.MainActivity
 import com.hong.volace.R
+import com.hong.volace.alarm.ExactAlarms
 import com.hong.volace.audio.ApplyResult
 import com.hong.volace.audio.ProfileSwitcher
 import com.hong.volace.audio.SwitchSource
@@ -243,17 +243,12 @@ internal object ScheduleStore {
 /** The one alarm, at the next boundary. */
 internal object ScheduleAlarm {
 
-    @SuppressLint("MissingPermission")
+    /**
+     * Without "アラームとリマインダー" (ExactAlarms) the alarm may come late and the service may not
+     * start from the background, so the switch would fall back to the notification.
+     */
     fun set(context: Context, at: Long) {
-        val alarms = context.getSystemService(AlarmManager::class.java) ?: return
-        // USE_EXACT_ALARM is granted at install (lint only knows SCHEDULE_EXACT_ALARM). Without an
-        // exact alarm the service may not start from the background, so the switch would fall
-        // back to the notification.
-        if (alarms.canScheduleExactAlarms()) {
-            alarms.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pendingIntent(context))
-        } else {
-            alarms.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pendingIntent(context))
-        }
+        ExactAlarms.set(context, at, pendingIntent(context))
     }
 
     fun cancel(context: Context) {

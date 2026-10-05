@@ -54,6 +54,8 @@ import com.hong.volace.ui.theme.Skin
 import com.hong.volace.ui.theme.SkinStore
 import com.hong.volace.widget.WidgetPalette
 import com.hong.volace.widget.WidgetRefresher
+import com.hong.volace.alarm.ExactAlarms
+import com.hong.volace.ui.alarm.rememberExactAlarmAllowed
 
 /** "設定": the skin, and the backup. Each opens its own dialog. */
 @Composable
@@ -66,6 +68,7 @@ fun SettingsDialog(
     val context = LocalContext.current
     val skin by SkinStore.state(context).collectAsState()
     var page by remember { mutableStateOf(Page.MENU) }
+    val exactAlarmAllowed = rememberExactAlarmAllowed()
 
     when (page) {
         Page.SKIN -> SkinDialog(current = skin, onDismiss = onDismiss)
@@ -82,6 +85,10 @@ fun SettingsDialog(
                     Entry(stringResource(R.string.backup), stringResource(R.string.settings_backup_desc)) {
                         page = Page.BACKUP
                     }
+                    Entry(
+                        stringResource(R.string.settings_exact_alarm),
+                        stringResource(if (exactAlarmAllowed) R.string.settings_exact_alarm_on else R.string.settings_exact_alarm_off),
+                    ) { context.startActivity(ExactAlarms.settingsIntent(context)) }
                 }
             },
             confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.close)) } },

@@ -1,5 +1,7 @@
 package com.hong.volace.ui.bluetooth
 
+import com.hong.volace.ui.alarm.ExactAlarmNotice
+import com.hong.volace.ui.alarm.rememberExactAlarmAllowed
 import com.hong.volace.ui.theme.cardShape
 import android.Manifest
 import android.annotation.SuppressLint
@@ -161,6 +163,7 @@ fun BluetoothScreen(profileDao: ProfileDao, ruleDao: BluetoothRuleDao, onBack: (
                     }
                 }
             }
+            item(key = "exact-alarm") { ExactAlarmNotice(relevant = rules.orEmpty().any { it.enabled }, text = R.string.exact_alarm_notice_bluetooth) }
             status?.let { last ->
                 item(key = "status") {
                     Surface(
@@ -217,6 +220,7 @@ fun BluetoothScreen(profileDao: ProfileDao, ruleDao: BluetoothRuleDao, onBack: (
 @Composable
 fun BluetoothSummaryCard(rules: List<BluetoothRule>, profiles: List<Profile>, status: BluetoothStatus?, onClick: () -> Unit) {
     val failed = status?.outcome?.failed == true
+    val exactAlarmAllowed = rememberExactAlarmAllowed()
     Surface(
         onClick = onClick,
         shape = cardShape(),
@@ -240,6 +244,13 @@ fun BluetoothSummaryCard(rules: List<BluetoothRule>, profiles: List<Profile>, st
                 Text(line, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 if (failed && status != null) {
                     Text(statusText(status), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+                }
+                if (rules.any { it.enabled } && !exactAlarmAllowed) {
+                    Text(
+                        stringResource(R.string.exact_alarm_list_missing),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
                 }
             }
             Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)

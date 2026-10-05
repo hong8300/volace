@@ -1,12 +1,12 @@
 package com.hong.volace.timer
 
-import android.annotation.SuppressLint
 import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.util.Log
 import com.hong.volace.R
+import com.hong.volace.alarm.ExactAlarms
 import com.hong.volace.audio.ApplyResult
 import com.hong.volace.audio.ProfileSwitcher
 import com.hong.volace.audio.SoundKind
@@ -190,17 +190,9 @@ object ProfileTimers {
 /** The one alarm that ends the timer. */
 internal object TimerAlarm {
 
-    @SuppressLint("MissingPermission")
+    /** Not exact without "アラームとリマインダー" (ExactAlarms): the timer then ends late, not never. */
     fun schedule(context: Context, at: Long) {
-        val alarms = context.getSystemService(AlarmManager::class.java) ?: return
-        val intent = pendingIntent(context)
-        // USE_EXACT_ALARM is granted at install (lint only knows SCHEDULE_EXACT_ALARM); the check
-        // only matters if that ever changes, and then the timer ends a little late, not never.
-        if (alarms.canScheduleExactAlarms()) {
-            alarms.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, intent)
-        } else {
-            alarms.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, intent)
-        }
+        ExactAlarms.set(context, at, pendingIntent(context))
     }
 
     fun cancel(context: Context) {

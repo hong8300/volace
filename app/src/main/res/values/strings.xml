@@ -249,7 +249,7 @@
     <string name="timer_restore_due">戻す</string>
     <!-- Schedule (スケジュール) -->
     <string name="schedule_title">スケジュール</string>
-    <string name="schedule_intro">決めた時刻に 1 回ずつ切り替えます。手動で切り替えたときは、次の時刻までそのままです。</string>
+    <string name="schedule_intro">決めた時刻に 1 回ずつ切り替えます。手動で切り替えたときは、次の時刻までそのままです。切り替えられなかったときは、通知でお知らせします。</string>
     <string name="schedule_next_label">次の切り替え</string>
     <string name="schedule_next">%1$s に「%2$s」</string>
     <string name="schedule_next_none">予定はありません</string>
@@ -337,7 +337,7 @@
     <string name="dnd_short_alarms_off">アラーム不可</string>
     <!-- Bluetooth -->
     <string name="bt_title">Bluetooth</string>
-    <string name="bt_intro">イヤホンや車の機器をつないだら切り替え、外したら戻します。切り替えるのはつないだとき・外したときの 1 回だけで、その間に手動で選んだプロファイルはそのままです。</string>
+    <string name="bt_intro">イヤホンや車の機器をつないだら切り替え、外したら戻します。切り替えるのはつないだとき・外したときの 1 回だけで、その間に手動で選んだプロファイルはそのままです。切り替えられなかったときは、通知でお知らせします。</string>
     <string name="bt_permission">ペアリングした機器の一覧と接続を知るには「付近のデバイス」の許可が必要です。</string>
     <string name="bt_permission_button">許可する</string>
     <string name="bt_last_label">前回</string>
@@ -450,4 +450,13 @@
     <string name="icon_style_standard">標準</string>
     <string name="icon_style_emoji">かわいい（絵文字）</string>
     <string name="icon_style_desc">一覧・ウィジェット・選択画面・ショートカットのプロファイルのアイコンに使います</string>
+
+    <!-- 「アラームとリマインダー」(SCHEDULE_EXACT_ALARM): 時間指定・スケジュール・Bluetooth の切り替えを時刻どおりに始めるのに要る -->
+    <string name="exact_alarm_notice">時刻どおりに切り替えるには、設定の「アラームとリマインダー」を許可してください。許可がないと、切り替えが遅れたり、通知をタップするまで切り替わらなかったりします。</string>
+    <string name="exact_alarm_notice_bluetooth">「アラームとリマインダー」を許可すると、端末が省電力状態でも、機器をつないだときにすぐ切り替えられます。許可がないと、切り替えが遅れることがあります。</string>
+    <string name="exact_alarm_open_settings">設定を開く</string>
+    <string name="exact_alarm_list_missing">「アラームとリマインダー」が未許可です（切り替えが遅れることがあります）</string>
+    <string name="settings_exact_alarm">アラームとリマインダー</string>
+    <string name="settings_exact_alarm_on">許可済みです。時間指定・スケジュール・Bluetooth を時刻どおりに始められます</string>
+    <string name="settings_exact_alarm_off">未許可です。切り替えが遅れたり、通知のタップが必要になります。タップして設定を開きます</string>
 </resources>
