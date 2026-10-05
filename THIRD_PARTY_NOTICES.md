@@ -12,12 +12,24 @@ licenses; the restrictions in LICENSE do not limit the rights those licenses giv
 - ライセンス / License: Apache License 2.0（全文は下記）
 - 入手元 / Source: <https://github.com/google/material-design-icons>
 
-`app/src/main/res/drawable/` の次のアイコンは Material Icons に由来します。
-Android の VectorDrawable として収録しており、色の指定などを Volace 向けに調整している場合があります。
-各ファイルの先頭のコメントに元のアイコン名があります。
+`app/src/main/res/drawable/` の次のアイコンは Material Icons です。Android の VectorDrawable として収録しており、
+形は元と同じで、塗り色は実行時に色を付けるため白にしています。
 
-- `ic_profile_*.xml`（`ic_profile_cat.xml` を除く）
+- `ic_profile_*.xml`（`ic_profile_cat.xml` を除く 29 個）
 - `ic_bluetooth.xml`, `ic_schedule.xml`, `ic_timer.xml`, `ic_widget_list.xml`, `ic_widget_warning.xml`
+
+2026-10-05 に、Google が配布する Material Icons の SVG（`fonts.gstatic.com/s/i/materialicons/<名前>/…/24px.svg`）と、
+これらのファイルを同じ大きさの画像にして比べ、すべて一致することを確認しました。
+先頭に元の名前のコメントがあるファイルはその名前のとおりです。コメントのない次のファイルの元は:
+
+| ファイル | 元の名前 |
+|---|---|
+| `ic_profile_alarm` / `bell` / `car` / `flight` | `alarm` / `notifications` / `directions_car` / `flight` |
+| `ic_profile_headphones` / `home` / `music` / `night` | `headphones` / `home` / `music_note` / `dark_mode` |
+| `ic_profile_restaurant` / `star` / `vibration` / `work` | `restaurant` / `star` / `vibration` / `work` |
+| `ic_profile_volume_off` / `volume_up` | `volume_off` / `volume_up` |
+| `ic_widget_list` | `format_list_bulleted` |
+| `ic_schedule` | `schedule`（Material Icons Outlined。同じ Apache License 2.0） |
 
 次は Volace のために描いたもので、LICENSE に従います:
 `ic_profile_cat.xml`、`ic_launcher_*.xml`、`widget_*.xml`。
