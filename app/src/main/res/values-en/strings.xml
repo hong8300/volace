@@ -465,4 +465,8 @@
     <string name="settings_exact_alarm">Alarms &amp; reminders</string>
     <string name="settings_exact_alarm_on">Allowed. Timed profiles, the schedule and Bluetooth can start on time</string>
     <string name="settings_exact_alarm_off">Not allowed. Switches can come late or need a tap on the notification. Tap to open Settings</string>
+
+    <string name="settings_privacy">Privacy policy</string>
+    <string name="settings_licenses">Licenses and third-party notices</string>
+    <string name="settings_link_desc">Opens in the browser</string>
 </resources>

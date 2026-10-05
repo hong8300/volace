@@ -57,7 +57,7 @@ import com.hong.volace.widget.WidgetRefresher
 import com.hong.volace.alarm.ExactAlarms
 import com.hong.volace.ui.alarm.rememberExactAlarmAllowed
 
-/** "設定": the skin, and the backup. Each opens its own dialog. */
+/** "設定": the skin, the backup, the alarm permission and the privacy policy / licenses (Play wants the policy in the app). */
 @Composable
 fun SettingsDialog(
     dao: ProfileDao,
@@ -77,7 +77,8 @@ fun SettingsDialog(
             onDismissRequest = onDismiss,
             title = { Text(stringResource(R.string.settings)) },
             text = {
-                Column {
+                // Scrolls: at large font sizes the entries do not fit on one screen.
+                Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                     Entry(
                         stringResource(R.string.settings_skin),
                         stringResource(R.string.settings_skin_desc, stringResource(skin.label)),
@@ -89,6 +90,12 @@ fun SettingsDialog(
                         stringResource(R.string.settings_exact_alarm),
                         stringResource(if (exactAlarmAllowed) R.string.settings_exact_alarm_on else R.string.settings_exact_alarm_off),
                     ) { context.startActivity(ExactAlarms.settingsIntent(context)) }
+                    Entry(stringResource(R.string.settings_privacy), stringResource(R.string.settings_link_desc)) {
+                        openLink(context, Links.PRIVACY)
+                    }
+                    Entry(stringResource(R.string.settings_licenses), stringResource(R.string.settings_link_desc)) {
+                        openLink(context, Links.NOTICES)
+                    }
                 }
             },
             confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.close)) } },

@@ -161,5 +161,6 @@ cp keystore.properties.sample keystore.properties
 - **Google Play:** 作者自身が公式版を Google Play で有料配布することを目指しています（#59）。
   公式版の入手条件は、公開したときのストアの表示によります。ソースからのビルドは無償で、
   Play 版の購入とは関係ありません。第三者による配布はできません
+- **プライバシー:** ネットワーク権限がなく、データを送信しません。詳しくは [PRIVACY.md](PRIVACY.md)（アプリの「設定」からも開けます）
 - **第三者の素材・ライブラリ:** Material Icons や AndroidX など（アプリに入るものはすべて Apache License 2.0）は
   それぞれのライセンスに従います。表示とライセンス文は [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) にあります

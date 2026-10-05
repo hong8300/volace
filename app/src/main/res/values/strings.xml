@@ -459,4 +459,8 @@
     <string name="settings_exact_alarm">アラームとリマインダー</string>
     <string name="settings_exact_alarm_on">許可済みです。時間指定・スケジュール・Bluetooth を時刻どおりに始められます</string>
     <string name="settings_exact_alarm_off">未許可です。切り替えが遅れたり、通知のタップが必要になります。タップして設定を開きます</string>
+
+    <string name="settings_privacy">プライバシーポリシー</string>
+    <string name="settings_licenses">ライセンスと第三者の通知</string>
+    <string name="settings_link_desc">ブラウザで開きます</string>
 </resources>
