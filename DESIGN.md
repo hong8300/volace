@@ -3,8 +3,9 @@
 ## 0. 背景・ゴール
 - 既存の Volume Profile 系アプリ(Volume Ace 等)は広告付き、かつ新端末にインストール不可
 - 自分専用に、6ストリームのプロファイル切り替えができるアプリ+ウィジェットを作る
-- 対象端末: Google Pixel 9 Pro XL / Google Pixel 11 Pro(自分・妻用、計2台、サイドロードのみ)
-- Play Store には公開しない(将来公開する可能性はあるが、初期スコープ外)
+- 当初の対象端末: Google Pixel 9 Pro XL / Google Pixel 11 Pro(自分・妻用、計2台、サイドロードのみ)。以後 Pixel 9a も使う
+- **配布**: 作者自身による Google Play での有料公開を目指す(issue #59)。公開リポジトリのライセンスは独自の「Volace License」(個人利用のみ許可、issue #65、`LICENSE`)。
+  サイドロードは引き続き使う(開発・検証)。初回公開のスコープは 1.1
 
 ## 1. スコープ(MVP)
 含む:
@@ -13,10 +14,23 @@
 - ホーム画面ウィジェットからプロファイルをワンタップ適用
 - 初回起動時の DND(Do Not Disturb)アクセス許可オンボーディング
 
-含まない(将来検討):
+含まない(MVP 時点。のちに時間帯の切り替えは 5.15、着信音は 5.16 で実装した):
 - プロファイルごとのカスタム着信音選択(RingtoneManager 連携) — 手間の割に優先度低いため見送り
 - 時間帯・Wi-Fi・位置情報による自動プロファイル切替 — 要望に含まれていないため見送り
-- Play Store 公開対応(署名・課金なし表記・プライバシーポリシー等)
+
+### 1.1 初回公開(Google Play 有料版)のスコープ(issue #59、2026-10-05)
+
+上の MVP からは広がっている。初回公開に含めるのは、`main` にある次の機能のすべて:
+プロファイルの切り替え(6 ストリーム・着信モード・色とアイコン・おやすみモード・音)、現在の音量の表示、ウィジェット 3 種、クイック設定タイル、
+アプリのショートカット、バックアップ、スキン、日本語・英語、時間指定(5.14)、スケジュール(5.15)、**Bluetooth 連動(5.18)**。
+
+- **Bluetooth 連動を含める**(2026-10-05 に決定): 実機(Pixel 9a)で、許可の有無にかかわらず切り替わることを確認した(8.11、PR #67)。
+  審査で `specialUse` の FGS の用途説明が通らないなど、Bluetooth が原因で止まったら、Bluetooth だけ外して出し直す。
+  車の機器・省電力状態・Pixel 以外の端末は未確認なので、ストアの説明では「確実」と書かず、切り替えられなかったときは通知で知らせることを書く
+- **含めない**(`#33` の見送りのまま): 位置・Wi-Fi での切り替え、音量ロック、カレンダー連動、常駐通知、Wear OS
+- **公開までに残ること**は #59 の受け入れ条件で管理する(release の統合 manifest の確認、失敗経路の検証、AAB と署名、Play Console の申告)。
+  Console の作業(アカウント、申告、審査)は作者が行う
+- targetSdk は 36 のまま(Play の新規公開・更新の要件は 2026-10-04 時点で API 36 以上。#59)。要件が上がったときに 8.7 の制限と合わせて再評価する
 
 ## 2. 技術スタック
 | 項目 | 選定 | 理由 |
@@ -26,10 +40,10 @@
 | ウィジェット | RemoteViews + AppWidgetProvider | 当初は Jetpack Glance だったが、タップ後に再描画されない問題で置き換えた(5.1 / 8.1) |
 | 永続化 | Room | プロファイルのCRUD・並び替えに向く。件数は数個〜十数個想定でオーバースペックにならない |
 | 非同期 | Kotlin Coroutines + Flow | Room/Composeとの親和性 |
-| minSdk | 33 (Android 13) | 対象端末2台のみ・自己配布のため後方互換を切り捨てて簡素化 |
+| minSdk | 33 (Android 13) | Android 13 未満は対象外にして後方互換を切り捨て、簡素化 |
 | compileSdk | 37(Android 17) | 最新の API を使う |
-| targetSdk | 36(Android 16) | 37 にすると、バックグラウンドからの音量変更に「ユーザー操作から始めた FGS」が要り、スケジュール(5.15)の自動切り替えができない(8.7)。サイドロードのためストアの targetSdk 要件は無関係 |
-| 署名 | debug鍵 or 自己管理のrelease鍵 | 2台への配布のみなので簡易でよいが、上書きアップデートを繰り返すなら鍵は固定して保管 |
+| targetSdk | 36(Android 16) | 37 にすると、バックグラウンドからの音量変更に「ユーザー操作から始めた FGS」が要り、スケジュール(5.15)の自動切り替えができない(8.7)。Play の新規公開・更新の要件は API 36 以上(2026-10-04 時点、#59)なので 36 で足りる。要件が上がったら再評価 |
+| 署名 | 自己管理のrelease鍵(9.1)。Play 配布は Play App Signing を想定 | 上書きアップデートには鍵の固定が要る。Play 版の署名鍵の扱いは 9.1 |
 
 ## 3. データモデル
 
@@ -528,6 +542,22 @@ AudioService は音量を `Settings.System`(`volume_music_speaker` 等、出力�
     `SCHEDULE_EXACT_ALARM`(ユーザーが許可)に替える。許可が無ければ非正確なアラームになり、終了が数分遅れうる
   - `POST_NOTIFICATIONS` は実行時に許可を求める(初回の時間指定・スケジュールのルールを初めて保存したとき)
 
+### 6.1 release の統合 manifest(2026-10-05、`assembleRelease` の `merged_manifests`、PR #67 を含む)
+
+Play に出す版で実際に入る権限・外から呼べる部品。公開候補のコミットでもう一度確かめること(#59)。
+
+| 区分 | 内容 |
+|---|---|
+| 権限 | `MODIFY_AUDIO_SETTINGS`、`ACCESS_NOTIFICATION_POLICY`、`WRITE_SETTINGS`、`BLUETOOTH_CONNECT`、`FOREGROUND_SERVICE`、`FOREGROUND_SERVICE_SPECIAL_USE`、`POST_NOTIFICATIONS`、`SCHEDULE_EXACT_ALARM`、`RECEIVE_BOOT_COMPLETED`(ほかにライブラリが足す内部用の `<パッケージ名>.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION`) |
+| 無いもの | `INTERNET`(ネットワーク権限なし)、`USE_EXACT_ALARM`、位置情報、連絡先、ストレージ |
+| `minSdk` / `targetSdk` | 33 / 36 |
+| 外から呼べる部品 | `MainActivity`(ランチャー)、`ProfileTileService`(`BIND_QUICK_SETTINGS_TILE`。システムだけ)、`BluetoothReceiver`(`BLUETOOTH_CONNECT` を持つ送り手だけ。5.18)、`ProfileInstallReceiver`(ライブラリ。`DUMP` を持つ送り手だけ) |
+| FGS | `TimerService`・`ScheduleService`・`BluetoothService`(いずれも `specialUse`。開始契機と継続時間は 5.14 / 5.15 / 5.18 とマニフェストの `PROPERTY_SPECIAL_USE_FGS_SUBTYPE`) |
+| バックアップ | `allowBackup="true"`。DB(Bluetooth のルールの機器名・アドレスを含む)が Android のバックアップに入る。`volace_device.xml` は除外(`data_extraction_rules.xml`) |
+
+- Play Console の申告に使う: データはすべて端末内。アプリは何も送信しない(ネットワーク権限がない)。バックアップは Android の仕組みによるもので、作者は受け取らない
+- `WRITE_SETTINGS` は音を選んだプロファイルのためだけ(5.16)。`BLUETOOTH_CONNECT` は Bluetooth 連動のためだけ(5.18)で、どちらも使う画面で求める
+
 ## 7. プロジェクト構成
 
 ```
@@ -574,7 +604,7 @@ volace/
 `monochrome` レイヤーも用意しているので Android 13+ のテーマアイコンにも対応する。
 背景は #1E3A8A → #2563EB → #06B6D4 のリニアグラデーション。
 
-- パッケージ名(仮): `com.hong.volace`(サイドロードのみなのでグローバル一意性は重要でないが、将来公開する可能性を考え衝突しにくい名前にしておく)
+- パッケージ名: `com.hong.volace`(Play に公開するとアプリ ID は変えられない。衝突しにくい名前にしてある)
 - アプリ名(仮): **Volace**(プロジェクトフォルダ名を踏襲)
 
 ## 8. 実機検証の結果(Pixel 9 Pro XL / Android 17, SDK 37, build CP2A.260805.005)
@@ -705,7 +735,7 @@ adb shell dumpsys audio | grep -E "mHardeningOverride|AudioHardening"
   この制限に当たる見込み。実装する機能ごとに次のどれかで対応し、上の `set-hardening` で確かめること
   - ユーザー操作の時点で FGS を張っておく(例: 時限適用の開始時)
   - 予定時刻に通知を出し、タップで適用する(通知のクリックはユーザー操作扱い)
-  - targetSdk を 36 にとどめる(WIU 要件が無くなり「`SHORT_SERVICE` 以外の FGS」だけで足りる。サイドロードなので可能)
+  - targetSdk を 36 にとどめる(WIU 要件が無くなり「`SHORT_SERVICE` 以外の FGS」だけで足りる。Play の要件も API 36 以上なので可能。1.1)
     → **#26 でこれを採用した**(下の「OS の判定と targetSdk 36」)
 - QS タイルのクリックがユーザー操作扱いかは文書に無いので、タイルからは表示中の Activity を経由して適用する
 
@@ -842,7 +872,7 @@ adb shell cmd notification allow_dnd com.hong.volace   # DNDアクセスをadb�
 
 ### 9.1 署名(重要)
 
-配布は2台へのサイドロードのみだが、**上書きアップデートを続けるには署名鍵を固定する必要がある**ため、
+これまでの配布は手元の端末へのサイドロードで、**上書きアップデートを続けるには署名鍵を固定する必要がある**ため、
 自己管理の release 鍵を作成した。
 
 | 項目 | 値 |
@@ -856,6 +886,11 @@ adb shell cmd notification allow_dnd com.hong.volace   # DNDアクセスをadb�
 
 **この2ファイルを失うと、既存インストールへの上書きができなくなる**(端末側でアンインストールが必要)。
 必ずバックアップすること。
+
+**Google Play 版の署名(Console の作業の前に決める)**: Play App Signing では、Play が署名する鍵(アプリ署名鍵)と、作者がアップロードに使う鍵が別になる。
+Play 版のアプリ署名鍵が手元の release 鍵と違うと、サイドロードで入れたアプリの上に Play 版を上書きできない(`INSTALL_FAILED_UPDATE_INCOMPATIBLE`)。
+手元の端末を Play 版へ移すなら、最初のアップロードのときに今の release 鍵をアプリ署名鍵として登録する(Console の手順に従う)か、一度アンインストールする。
+この鍵の扱いは公開後に変えにくいので、最初のアップロードの前に決めること。
 
 ### 9.2 R8 / リソース圧縮
 
