@@ -163,7 +163,7 @@ fun BluetoothScreen(profileDao: ProfileDao, ruleDao: BluetoothRuleDao, onBack: (
                     }
                 }
             }
-            item(key = "exact-alarm") { ExactAlarmNotice(relevant = rules.orEmpty().any { it.enabled }) }
+            item(key = "exact-alarm") { ExactAlarmNotice(relevant = rules.orEmpty().any { it.enabled }, text = R.string.exact_alarm_notice_bluetooth) }
             status?.let { last ->
                 item(key = "status") {
                     Surface(

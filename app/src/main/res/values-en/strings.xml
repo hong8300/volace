@@ -459,6 +459,7 @@
 
     <!-- "Alarms & reminders" (SCHEDULE_EXACT_ALARM): needed to start timed profiles, the schedule and Bluetooth switches on time -->
     <string name="exact_alarm_notice">To switch on time, allow “Alarms &amp; reminders” in Settings. Without it, a switch can come late, or wait until you tap its notification.</string>
+    <string name="exact_alarm_notice_bluetooth">Allow “Alarms &amp; reminders” so a switch happens right away when you connect a device, even if the phone is in a power-saving state. Without it, a switch can come late.</string>
     <string name="exact_alarm_open_settings">Open Settings</string>
     <string name="exact_alarm_list_missing">“Alarms &amp; reminders” is not allowed (switches can come late)</string>
     <string name="settings_exact_alarm">Alarms &amp; reminders</string>

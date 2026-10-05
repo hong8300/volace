@@ -453,6 +453,7 @@
 
     <!-- 「アラームとリマインダー」(SCHEDULE_EXACT_ALARM): 時間指定・スケジュール・Bluetooth の切り替えを時刻どおりに始めるのに要る -->
     <string name="exact_alarm_notice">時刻どおりに切り替えるには、設定の「アラームとリマインダー」を許可してください。許可がないと、切り替えが遅れたり、通知をタップするまで切り替わらなかったりします。</string>
+    <string name="exact_alarm_notice_bluetooth">「アラームとリマインダー」を許可すると、端末が省電力状態でも、機器をつないだときにすぐ切り替えられます。許可がないと、切り替えが遅れることがあります。</string>
     <string name="exact_alarm_open_settings">設定を開く</string>
     <string name="exact_alarm_list_missing">「アラームとリマインダー」が未許可です（切り替えが遅れることがあります）</string>
     <string name="settings_exact_alarm">アラームとリマインダー</string>

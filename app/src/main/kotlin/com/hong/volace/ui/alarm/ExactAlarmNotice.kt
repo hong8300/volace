@@ -1,5 +1,6 @@
 package com.hong.volace.ui.alarm
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -39,10 +40,14 @@ fun rememberExactAlarmAllowed(): Boolean {
 /**
  * Says why "アラームとリマインダー" is needed and opens its Settings page. Nothing when it is
  * allowed. [relevant] is false where nothing depends on it yet (e.g. no rules), so it does not
- * nag before the feature is used.
+ * nag before the feature is used. [text] says what the feature loses without it.
  */
 @Composable
-fun ExactAlarmNotice(modifier: Modifier = Modifier, relevant: Boolean = true) {
+fun ExactAlarmNotice(
+    modifier: Modifier = Modifier,
+    relevant: Boolean = true,
+    @StringRes text: Int = R.string.exact_alarm_notice,
+) {
     val allowed = rememberExactAlarmAllowed()
     if (allowed || !relevant) return
     val context = LocalContext.current
@@ -53,7 +58,7 @@ fun ExactAlarmNotice(modifier: Modifier = Modifier, relevant: Boolean = true) {
     ) {
         Column(Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
             Text(
-                stringResource(R.string.exact_alarm_notice),
+                stringResource(text),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onErrorContainer,
             )
