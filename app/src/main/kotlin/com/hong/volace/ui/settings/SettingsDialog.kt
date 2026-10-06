@@ -38,6 +38,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -67,12 +68,14 @@ fun SettingsDialog(
 ) {
     val context = LocalContext.current
     val skin by SkinStore.state(context).collectAsState()
-    var page by remember { mutableStateOf(Page.MENU) }
+    var page by rememberSaveable { mutableStateOf(Page.MENU) }
     val exactAlarmAllowed = rememberExactAlarmAllowed()
 
     when (page) {
         Page.SKIN -> SkinDialog(current = skin, onDismiss = onDismiss)
         Page.BACKUP -> BackupDialog(dao, volumeApplier, onDismiss = onDismiss, onMessage = onMessage)
+        Page.PRIVACY -> LegalDocumentDialog(LegalDocument.PRIVACY) { page = Page.MENU }
+        Page.LICENSES -> LegalDocumentDialog(LegalDocument.LICENSES) { page = Page.MENU }
         Page.MENU -> AlertDialog(
             onDismissRequest = onDismiss,
             title = { Text(stringResource(R.string.settings)) },
@@ -90,11 +93,11 @@ fun SettingsDialog(
                         stringResource(R.string.settings_exact_alarm),
                         stringResource(if (exactAlarmAllowed) R.string.settings_exact_alarm_on else R.string.settings_exact_alarm_off),
                     ) { context.startActivity(ExactAlarms.settingsIntent(context)) }
-                    Entry(stringResource(R.string.settings_privacy), stringResource(R.string.settings_link_desc)) {
-                        openLink(context, Links.PRIVACY)
+                    Entry(stringResource(R.string.settings_privacy), stringResource(R.string.settings_document_desc)) {
+                        page = Page.PRIVACY
                     }
-                    Entry(stringResource(R.string.settings_licenses), stringResource(R.string.settings_link_desc)) {
-                        openLink(context, Links.NOTICES)
+                    Entry(stringResource(R.string.settings_licenses), stringResource(R.string.settings_document_desc)) {
+                        page = Page.LICENSES
                     }
                 }
             },
@@ -103,7 +106,7 @@ fun SettingsDialog(
     }
 }
 
-private enum class Page { MENU, SKIN, BACKUP }
+private enum class Page { MENU, SKIN, BACKUP, PRIVACY, LICENSES }
 
 /**
  * "スキン": the icon style (line icons or emoji) on top, then the skins by group. Both apply at

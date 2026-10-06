@@ -468,5 +468,6 @@
 
     <string name="settings_privacy">Privacy policy</string>
     <string name="settings_licenses">Licenses and third-party notices</string>
-    <string name="settings_link_desc">Opens in the browser</string>
+    <string name="settings_document_desc">Read in the app</string>
+    <string name="settings_document_back">Back to settings</string>
 </resources>

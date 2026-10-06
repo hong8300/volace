@@ -13,6 +13,17 @@ val keystoreProperties = Properties().apply {
     if (file.exists()) file.inputStream().use { load(it) }
 }
 
+// Package the repository's documents directly so the in-app copy cannot drift from them.
+val legalAssets = layout.buildDirectory.dir("generated/legalAssets")
+val syncLegalDocuments by tasks.registering(Sync::class) {
+    from(rootProject.projectDir) {
+        include("PRIVACY.md", "LICENSE", "THIRD_PARTY_NOTICES.md")
+        into("legal")
+    }
+    into(legalAssets)
+}
+tasks.named("preBuild") { dependsOn(syncLegalDocuments) }
+
 android {
     namespace = "com.hong.volace"
     compileSdk = 37
@@ -27,8 +38,8 @@ android {
         targetSdk = 36
         // Bump on every build handed to a device: adb then refuses to install an older APK over a
         // newer one, whose database it could not open (see VolaceDatabase).
-        versionCode = 2
-        versionName = "1.1"
+        versionCode = 3
+        versionName = "1.1.1"
     }
 
     signingConfigs {
@@ -78,6 +89,7 @@ android {
     // Migration tests run on the JVM under Robolectric, which reads the app's own merged assets
     // (test-source-set assets are not seen), so the exported schemas ride along in debug only.
     sourceSets.getByName("debug").assets.directories.add("$projectDir/schemas")
+    sourceSets.getByName("main").assets.directories.add(legalAssets.get().asFile.absolutePath)
     testOptions {
         unitTests.isIncludeAndroidResources = true
     }

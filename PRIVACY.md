@@ -1,7 +1,7 @@
 # プライバシーポリシー / Privacy Policy
 
 Volace（音量プロファイルの切り替えアプリ）
-最終更新: 2026-10-05
+最終更新: 2026-10-06
 
 日本語が正文です。英語は参考訳です。
 The Japanese text is authoritative. The English text is a reference translation.
@@ -60,9 +60,9 @@ Volace は子ども向けに作られていません。年齢にかかわらず�
 
 アプリのデータを消す（Android の設定 → アプリ → Volace → ストレージ → データを削除）か、アプリを削除すると、端末内のデータはすべて消えます。作者の側には何も残っていません。
 
-### リンク先
+### ポリシーとライセンスの表示
 
-アプリの「設定」から、このポリシーとライセンス表示をブラウザで開けます。ブラウザでの閲覧は、ブラウザ側の規約とプライバシーポリシーに従います。
+アプリの「設定」から、このポリシーとライセンス・第三者の通知の全文をアプリ内で読めます。文書はアプリに同梱され、インターネット接続やブラウザは不要です。
 
 ### 変更
 
@@ -126,9 +126,9 @@ Volace is not made for children. It collects no data regardless of age.
 
 Clear the app's data (Android Settings → Apps → Volace → Storage → Clear data) or uninstall the app, and all data on the device is gone. Nothing is kept on the author's side.
 
-### Links
+### Viewing the policy and licenses
 
-From the app's Settings you can open this policy and the license notices in your browser. Viewing them in the browser is governed by the browser's own terms and privacy policy.
+From the app's Settings you can read this policy, the app's license and the third-party notices in full within the app. The documents are bundled with the app; no internet connection or browser is needed.
 
 ### Changes
 
