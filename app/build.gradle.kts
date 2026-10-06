@@ -38,8 +38,8 @@ android {
         targetSdk = 36
         // Bump on every build handed to a device: adb then refuses to install an older APK over a
         // newer one, whose database it could not open (see VolaceDatabase).
-        versionCode = 3
-        versionName = "1.1.1"
+        versionCode = 5
+        versionName = "1.1.2"
     }
 
     signingConfigs {

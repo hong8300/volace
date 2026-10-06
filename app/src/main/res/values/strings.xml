@@ -464,4 +464,5 @@
     <string name="settings_licenses">ライセンスと第三者の通知</string>
     <string name="settings_document_desc">アプリ内で読めます</string>
     <string name="settings_document_back">設定に戻る</string>
+    <string name="settings_document_contents">目次</string>
 </resources>
